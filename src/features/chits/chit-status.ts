@@ -1,4 +1,5 @@
-import type { Chit } from '@/types/database';
+import type { Chit, Payment } from '@/types/database';
+import { hasRecordedPayment } from '@/utils/chit-payment-summary';
 
 export type ChitLifecycleVariant = 'success' | 'info' | 'danger';
 
@@ -15,4 +16,33 @@ export function getChitLifecycleStatus(chit: Chit): ChitLifecycleStatus {
 
 export function countPaidInstallments(chit: Chit): number {
   return chit.payments?.filter((p) => p.status === 'paid').length ?? 0;
+}
+
+export function countRecordedPayments(payments: Payment[]): number {
+  return payments.filter(hasRecordedPayment).length;
+}
+
+export interface ChitWithdrawalEligibility {
+  canRecord: boolean;
+  disabledReason?: string;
+}
+
+export function getChitWithdrawalEligibility(
+  payments: Payment[],
+  chit: Pick<Chit, 'withdrawal'>,
+): ChitWithdrawalEligibility {
+  const recordedCount = countRecordedPayments(payments);
+
+  if (chit.withdrawal) {
+    return { canRecord: false, disabledReason: 'Withdrawal already recorded' };
+  }
+
+  if (recordedCount === 0) {
+    return {
+      canRecord: false,
+      disabledReason: 'Record at least one installment payment first',
+    };
+  }
+
+  return { canRecord: true };
 }

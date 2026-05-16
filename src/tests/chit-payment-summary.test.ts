@@ -55,14 +55,21 @@ describe('chit-payment-summary', () => {
     expect(getInstallmentVariance(p)).toBe(-80);
   });
 
-  it('computes net maturity from collection variance', () => {
+  it('uses latest recorded installment maturity, not installment 20', () => {
     const payments: Payment[] = [
       payment({
         installment_no: 1,
         status: 'paid',
         amount_paid: 4500,
         expected_amount: 4480,
-        maturity_amount: 95000,
+        maturity_amount: 73800,
+      }),
+      payment({
+        installment_no: 15,
+        status: 'paid',
+        amount_paid: 4750,
+        expected_amount: 4750,
+        maturity_amount: 90000,
       }),
       payment({
         installment_no: 20,
@@ -72,8 +79,10 @@ describe('chit-payment-summary', () => {
       }),
     ];
     const summary = summarizeChitPayments(payments);
+    expect(summary.maturityInstallmentNo).toBe(15);
+    expect(summary.maturityBase).toBe(90000);
     expect(summary.collectionVariance).toBe(20);
-    expect(summary.netMaturityPayout).toBe(95020);
+    expect(summary.netMaturityPayout).toBe(90020);
     expect(summary.varianceLabel).toBe('Extra paid');
   });
 });

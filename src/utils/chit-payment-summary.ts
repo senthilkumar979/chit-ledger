@@ -19,6 +19,20 @@ export function getInstallmentVariance(payment: Payment): number {
   return getRecordedAmount(payment) - Number(payment.expected_amount);
 }
 
+/** Latest installment with a recorded collection — drives maturity ladder at withdrawal. */
+export function getHighestRecordedInstallment(payments: Payment[]): Payment | null {
+  let highest: Payment | null = null;
+
+  for (const payment of payments) {
+    if (!hasRecordedPayment(payment)) continue;
+    if (!highest || payment.installment_no > highest.installment_no) {
+      highest = payment;
+    }
+  }
+
+  return highest;
+}
+
 export type CollectionVarianceLabel = 'Extra paid' | 'Shortfall' | 'Balanced';
 
 export interface ChitPaymentSummary {
@@ -30,6 +44,7 @@ export interface ChitPaymentSummary {
   paidInstallmentCount: number;
   partialCount: number;
   overdueCount: number;
+  maturityInstallmentNo: number | null;
   maturityBase: number;
   netMaturityPayout: number;
 }
@@ -63,8 +78,9 @@ export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
   }
 
   const collectionVariance = totalCollected - totalExpectedOnRecorded;
-  const maturityPayment = payments.find((p) => p.installment_no === 20);
-  const maturityBase = maturityPayment ? Number(maturityPayment.maturity_amount) : 0;
+  const maturityAnchor = getHighestRecordedInstallment(payments);
+  const maturityInstallmentNo = maturityAnchor?.installment_no ?? null;
+  const maturityBase = maturityAnchor ? Number(maturityAnchor.maturity_amount) : 0;
   const netMaturityPayout = maturityBase + collectionVariance;
 
   const varianceLabel: CollectionVarianceLabel =
@@ -79,6 +95,7 @@ export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
     paidInstallmentCount,
     partialCount,
     overdueCount,
+    maturityInstallmentNo,
     maturityBase,
     netMaturityPayout,
   };

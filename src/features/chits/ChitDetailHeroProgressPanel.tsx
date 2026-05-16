@@ -5,6 +5,7 @@ import { ProgressRing } from './ProgressRing'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/lib/utils'
 import { summarizeChitPayments } from '@/utils/chit-payment-summary'
+import { getChitWithdrawalEligibility } from './chit-status'
 import type { ChitWithPayments } from '@/types/database'
 
 interface ChitDetailHeroProgressPanelProps {
@@ -20,8 +21,8 @@ export function ChitDetailHeroProgressPanel({
   showWithdrawalCta,
   onRecordWithdrawal,
 }: ChitDetailHeroProgressPanelProps) {
-  const paidFully = paidCount >= chit.payments.length
   const summary = summarizeChitPayments(chit.payments)
+  const withdrawal = getChitWithdrawalEligibility(chit.payments, chit)
 
   return (
     <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/80 bg-gradient-to-br from-surface/90 via-card to-accent/[0.04] p-5 shadow-inner sm:max-w-[280px] lg:shrink-0">
@@ -47,25 +48,22 @@ export function ChitDetailHeroProgressPanel({
             variant="accent"
             size="md"
             className="w-full shadow-md shadow-accent/20"
-            disabled={!chit.matured || chit.withdrawal}
-            title={
-              !chit.matured
-                ? 'Pay installment 20 in full to mature this chit'
-                : undefined
-            }
+            disabled={!withdrawal.canRecord}
+            title={withdrawal.disabledReason}
             onClick={onRecordWithdrawal}
           >
             <Wallet className="h-4 w-4" />
             Record withdrawal
           </Button>
-          {!chit.matured ? (
+          {withdrawal.disabledReason ? (
             <p className="text-center text-[11px] leading-snug text-muted">
-              Maturity is set automatically when installment 20 is paid in full.
+              {withdrawal.disabledReason}
             </p>
           ) : null}
         </div>
       ) : null}
-      {chit.matured && !chit.withdrawal ? (
+      {!chit.withdrawal &&
+      (summary.paidInstallmentCount > 0 || summary.partialCount > 0) ? (
         <div className="rounded-lg border border-accent/20 bg-accent/5 px-3 py-2 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Net payout</p>
           <p className="mt-0.5 text-sm font-bold tabular-nums text-accent">

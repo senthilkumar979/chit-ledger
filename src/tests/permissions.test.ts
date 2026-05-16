@@ -8,6 +8,12 @@ describe('getPermissions', () => {
     expect(p.canDelete).toBe(true);
     expect(p.canExport).toBe(true);
     expect(p.canManageLoans).toBe(true);
+    expect(p.canViewLoanAnalytics).toBe(true);
+  });
+
+  it('hides loan analytics from staff', () => {
+    const p = getPermissions('STAFF');
+    expect(p.canViewLoanAnalytics).toBe(false);
   });
 
   it('restricts viewer to read only', () => {

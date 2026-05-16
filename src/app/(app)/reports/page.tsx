@@ -1,10 +1,12 @@
-import { ReportsView } from '@/features/reports/ReportsView';
+import { EnterpriseReportsView } from '@/features/reports/EnterpriseReportsView';
 import { getProfile } from '@/lib/auth/get-profile';
 import { getPermissions } from '@/lib/permissions';
 
 export default async function ReportsPage() {
   const profile = await getProfile();
-  const { canExport } = getPermissions(profile?.role);
+  const { canExport, canViewLoanAnalytics } = getPermissions(profile?.role);
 
-  return <ReportsView canExport={canExport} />;
+  return (
+    <EnterpriseReportsView canExport={canExport} canViewLoanAnalytics={canViewLoanAnalytics} />
+  );
 }

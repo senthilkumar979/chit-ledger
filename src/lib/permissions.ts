@@ -11,6 +11,7 @@ export function getPermissions(role: UserRole | undefined) {
     canExport: isAdmin,
     canManageUsers: isAdmin,
     canManageLoans: isAdmin,
+    canViewLoanAnalytics: isAdmin,
     isViewer: role === 'VIEWER',
   };
 }

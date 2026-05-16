@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Payment } from '@/types/database';
-import type { MarkPaymentFormData } from '@/schemas/payment';
+import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/payment';
 import { computePaymentStatus } from '@/utils/payment-status';
 
 export async function fetchPayments(filters?: {
@@ -65,6 +65,26 @@ export async function markPayment(
   }
 
   return payment;
+}
+
+export async function markBulkPayments(
+  chitId: string,
+  input: BulkMarkPaymentFormData,
+): Promise<{ updatedCount: number }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('mark_bulk_chit_payments', {
+    p_chit_id: chitId,
+    p_count: input.installment_count,
+    p_paid_date: input.paid_date,
+    p_payment_mode: input.payment_mode,
+    p_paid_to: input.paid_to,
+  });
+
+  if (error) throw new Error(error.message);
+
+  const payload = data as { updated_count?: number } | null;
+  const updatedCount = payload?.updated_count ?? input.installment_count;
+  return { updatedCount };
 }
 
 export async function updatePayment(

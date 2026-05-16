@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchChitById } from '@/services/chits'
-import { markPayment, updatePayment, resetPayment } from '@/services/payments'
+import {
+  markPayment,
+  markBulkPayments,
+  updatePayment,
+  resetPayment,
+} from '@/services/payments'
 import { BackLink } from '@/components/layout/BackLink'
 import { ChitDetailHero } from './ChitDetailHero'
 import { ChitDetailStats } from './ChitDetailStats'
@@ -12,12 +17,15 @@ import { ChitExportButton } from './ChitExportButton'
 import { ChitWithdrawalSummary } from './ChitWithdrawalSummary'
 import { PaymentSchedule } from './PaymentSchedule'
 import { MarkPaymentForm } from '@/features/payments/MarkPaymentForm'
+import { BulkMarkPaymentForm } from '@/features/payments/BulkMarkPaymentForm'
+import { Button } from '@/components/ui/Button'
 import { WithdrawalForm } from '@/features/withdrawals/WithdrawalForm'
 import { Modal } from '@/components/ui/Modal'
 import { ChitDetailSkeleton } from './ChitDetailSkeleton'
 import { toast } from 'sonner'
 import type { Payment } from '@/types/database'
-import type { MarkPaymentFormData } from '@/schemas/payment'
+import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/payment'
+import { getUnpaidInstallments, previewBulkPayment } from '@/utils/bulk-payment'
 import { INSTALLMENT_COUNT } from '../../constants/chit-config'
 import { invalidateChitQueries as invalidateChitRelatedQueries } from '@/lib/invalidate-chit-queries'
 import { summarizeChitPayments } from '@/utils/chit-payment-summary'
@@ -36,6 +44,7 @@ export function ChitDetailView({
   const [active, setActive] = useState<Payment | null>(null)
   const [mode, setMode] = useState<'record' | 'edit'>('record')
   const [withdrawalOpen, setWithdrawalOpen] = useState(false)
+  const [bulkOpen, setBulkOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: chit, isLoading } = useQuery({
@@ -80,6 +89,20 @@ export function ChitDetailView({
     queryClient.invalidateQueries({ queryKey: ['chit', chitId] })
   }
 
+  async function handleBulkSubmit(form: BulkMarkPaymentFormData) {
+    if (!chit) return
+    const preview = previewBulkPayment(chit.payments, form.installment_count)
+    const { updatedCount } = await markBulkPayments(chitId, form)
+    const matured = preview.targets.some((p) => p.installment_no === 20)
+    toast.success(
+      matured
+        ? `Recorded ${updatedCount} payments · Chit matured`
+        : `Recorded ${updatedCount} payment${updatedCount === 1 ? '' : 's'}`,
+    )
+    setBulkOpen(false)
+    queryClient.invalidateQueries({ queryKey: ['chit', chitId] })
+  }
+
   async function handleReset(payment: Payment) {
     await resetPayment(payment.id)
     toast.success('Payment reset to pending')
@@ -89,6 +112,7 @@ export function ChitDetailView({
   if (isLoading || !chit) return <ChitDetailSkeleton />
 
   const paidCount = chit.payments.filter((p) => p.status === 'paid').length
+  const unpaidCount = getUnpaidInstallments(chit.payments).length
   const paymentSummary = summarizeChitPayments(chit.payments)
 
   return (
@@ -119,13 +143,24 @@ export function ChitDetailView({
       <ChitDetailStats payments={chit.payments} />
 
       <div className="rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="border-b border-border px-6 py-5 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-primary">
-            Payment schedule
-          </h2>
-          <p className="mt-0.5 text-sm text-muted">
-            {INSTALLMENT_COUNT} installments
-          </p>
+        <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-primary">Payment schedule</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              {INSTALLMENT_COUNT} installments
+            </p>
+          </div>
+          {canWrite && unpaidCount > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-border/80"
+              onClick={() => setBulkOpen(true)}
+            >
+              Record bulk payment
+            </Button>
+          ) : null}
         </div>
         <div className="p-4 sm:p-6">
           <PaymentSchedule
@@ -166,6 +201,20 @@ export function ChitDetailView({
             setWithdrawalOpen(false)
           }}
           onCancel={() => setWithdrawalOpen(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Record bulk payment"
+        className="max-w-md"
+      >
+        <BulkMarkPaymentForm
+          key={`bulk-${chit.updated_at}-${unpaidCount}`}
+          payments={chit.payments}
+          onSubmit={handleBulkSubmit}
+          onCancel={() => setBulkOpen(false)}
         />
       </Modal>
 

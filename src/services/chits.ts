@@ -1,0 +1,101 @@
+import { createClient } from '@/lib/supabase/client';
+import type { Chit, ChitWithPayments } from '@/types/database';
+import type { ChitFormData } from '@/schemas/chit';
+import { chitEndDateFromStart } from '@/utils/installment-due';
+
+export async function fetchChitsByPerson(personId: string): Promise<Chit[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('chits')
+    .select('*, person:persons(id, name, city)')
+    .eq('person_id', personId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Chit[];
+}
+
+export async function fetchChits(search?: string): Promise<Chit[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from('chits')
+    .select('*, person:persons(id, name, city, phone)')
+    .order('created_at', { ascending: false });
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  let results = (data ?? []) as Chit[];
+  if (search?.trim()) {
+    const q = search.toLowerCase();
+    results = results.filter((c) => {
+      const name = c.person?.name?.toLowerCase() ?? '';
+      return name.includes(q) || c.category.toLowerCase().includes(q);
+    });
+  }
+  return results;
+}
+
+export async function fetchChitById(id: string): Promise<ChitWithPayments> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('chits')
+    .select('*, person:persons(*), payments(*)')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(error.message);
+  const chit = data as ChitWithPayments;
+  chit.payments.sort((a, b) => a.installment_no - b.installment_no);
+  return chit;
+}
+
+export async function createChit(input: ChitFormData): Promise<Chit> {
+  const supabase = createClient();
+  const endDate =
+    input.end_date ||
+    (input.start_date ? chitEndDateFromStart(input.start_date) : null);
+
+  const { data, error } = await supabase
+    .from('chits')
+    .insert({
+      person_id: input.person_id,
+      type: input.type,
+      category: input.category,
+      start_date: input.start_date || null,
+      end_date: endDate,
+    })
+    .select('*, person:persons(id, name, city)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Chit;
+}
+
+export async function updateChit(id: string, input: ChitFormData): Promise<Chit> {
+  const supabase = createClient();
+  const endDate =
+    input.end_date || (input.start_date ? chitEndDateFromStart(input.start_date) : null);
+
+  const { data, error } = await supabase
+    .from('chits')
+    .update({
+      person_id: input.person_id,
+      type: input.type,
+      category: input.category,
+      start_date: input.start_date || null,
+      end_date: endDate,
+    })
+    .eq('id', id)
+    .select('*, person:persons(*)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Chit;
+}
+
+export async function deleteChit(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('chits').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}

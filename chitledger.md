@@ -267,7 +267,7 @@ create table chits (
  person_id uuid references persons(id),
 
  type text not null,
- category text not null,
+ category text not null, -- app: '5th of every month' | '20th of every month'
 
  start_date date,
  end_date date,

@@ -44,7 +44,6 @@ export async function markPayment(
       paid_date: input.paid_date,
       payment_mode: input.payment_mode,
       paid_to: input.paid_to,
-      amount_paid: amountPaid,
       advance_amount_paid: amountPaid,
       status,
     })
@@ -83,7 +82,6 @@ export async function resetPayment(paymentId: string): Promise<Payment> {
       paid_date: null,
       payment_mode: null,
       paid_to: null,
-      amount_paid: 0,
       advance_amount_paid: 0,
       status: 'pending',
     })

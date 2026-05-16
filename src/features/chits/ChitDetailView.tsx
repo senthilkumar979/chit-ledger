@@ -8,6 +8,7 @@ import { BackLink } from '@/components/layout/BackLink'
 import { ChitDetailHero } from './ChitDetailHero'
 import { ChitDetailStats } from './ChitDetailStats'
 import { ChitDetailToolbar } from './ChitDetailToolbar'
+import { ChitExportButton } from './ChitExportButton'
 import { ChitWithdrawalSummary } from './ChitWithdrawalSummary'
 import { PaymentSchedule } from './PaymentSchedule'
 import { MarkPaymentForm } from '@/features/payments/MarkPaymentForm'
@@ -103,13 +104,16 @@ export function ChitDetailView({
             : undefined
         }
         footerActions={
-          canWrite || canDelete ? (
-            <ChitDetailToolbar
-              chit={chit}
-              canWrite={canWrite}
-              canDelete={canDelete}
-            />
-          ) : undefined
+          <div className="flex w-full flex-wrap items-center gap-2">
+            {canWrite || canDelete ? (
+              <ChitDetailToolbar
+                chit={chit}
+                canWrite={canWrite}
+                canDelete={canDelete}
+              />
+            ) : null}
+            <ChitExportButton chit={chit} />
+          </div>
         }
       />
       <ChitDetailStats payments={chit.payments} />

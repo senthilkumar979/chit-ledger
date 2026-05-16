@@ -17,6 +17,14 @@ export interface AnalyticsBundle {
   byCategory: ChartDatum[];
 }
 
+function collectedAmount(row: {
+  advance_amount_paid: number | null;
+  expected_amount: number;
+}): number {
+  const raw = row.advance_amount_paid;
+  return raw != null && Number(raw) > 0 ? Number(raw) : 0;
+}
+
 interface PaymentRow {
   expected_amount: number;
   advance_amount_paid: number | null;
@@ -56,7 +64,7 @@ export async function fetchAnalytics(): Promise<AnalyticsBundle> {
 
   for (const p of rows) {
     if (p.status !== 'paid' || !p.paid_date) continue;
-    const amt = Number(p.advance_amount_paid ?? p.expected_amount);
+    const amt = collectedAmount(p) || Number(p.expected_amount);
     const monthKey = p.paid_date.slice(0, 7);
     sumMap(byMonth, monthKey, amt);
 

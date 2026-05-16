@@ -75,7 +75,7 @@ export function ChitDetailToolbar({
             className="border-border/80 bg-card"
           >
             <Pencil className="h-4 w-4" />
-            Edit chit
+            Edit
           </Button>
         ) : null}
         {canDelete ? (
@@ -85,7 +85,7 @@ export function ChitDetailToolbar({
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="h-4 w-4" />
-            Delete chit
+            Delete
           </Button>
         ) : null}
       </div>

@@ -1,160 +1,258 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText } from 'lucide-react';
-import {
-  fetchMonthlyCollections,
-  fetchDefaulters,
-  fetchMaturedMembers,
-  fetchUpcomingWithdrawals,
-  fetchReportSummary,
-  reportRowsToExport,
-} from '@/services/reports';
+import { fetchReportsData } from '@/services/reports';
 import { ReportsHero } from './ReportsHero';
-import { AnalyticsChartsGrid } from '@/components/charts/AnalyticsChartsGrid';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { ReportsKpiGrid } from './ReportsKpiGrid';
+import { ReportsChartsSection } from './ReportsChartsSection';
+import { ReportSection } from './ReportSection';
+import { ReportCollectionsTable } from './ReportCollectionsTable';
+import { ReportOutstandingTable } from './ReportOutstandingTable';
+import { ReportMaturedTable, ReportPortfolioTable } from './ReportChitTables';
+import {
+  COLLECTIONS_PDF_HEADERS,
+  MATURED_PDF_HEADERS,
+  OUTSTANDING_PDF_HEADERS,
+  PORTFOLIO_PDF_HEADERS,
+  collectionKpisSummary,
+  collectionsToPdfRows,
+  kpisToPdfSummary,
+  maturedToPdfRows,
+  outstandingToPdfRows,
+  portfolioToPdfRows,
+} from './report-pdf-mappers';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import { exportToCsv } from '@/utils/export-csv';
-import { exportToPdf } from '@/utils/export-pdf';
-import { formatCurrency, cn } from '@/lib/utils';
-
-const tabs = [
-  { id: 'collections', label: 'Collections' },
-  { id: 'defaulters', label: 'Defaulters' },
-  { id: 'matured', label: 'Matured' },
-  { id: 'withdrawals', label: 'Withdrawals' },
-] as const;
-
-type TabId = (typeof tabs)[number]['id'];
-
-const fetchers: Record<TabId, () => Promise<import('@/services/reports').ReportRow[]>> = {
-  collections: fetchMonthlyCollections,
-  defaulters: fetchDefaulters,
-  matured: fetchMaturedMembers,
-  withdrawals: fetchUpcomingWithdrawals,
-};
+import { exportReportTablePdf } from '@/utils/pdf/export-report-pdf';
+import {
+  buildCollectionMonthOptions,
+  filterCollectionsByMonth,
+} from '@/utils/report-metrics';
+import { toast } from 'sonner';
 
 interface ReportsViewProps {
   canExport: boolean;
 }
 
 export function ReportsView({ canExport }: ReportsViewProps) {
-  const [tab, setTab] = useState<TabId>('collections');
-
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['report-summary'],
-    queryFn: fetchReportSummary,
-  });
+  const [collectionMonth, setCollectionMonth] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reports', tab],
-    queryFn: fetchers[tab],
+    queryKey: ['reports-data'],
+    queryFn: fetchReportsData,
   });
 
-  function handleCsv() {
-    if (!data) return;
-    exportToCsv(
-      `chitledger-${tab}.csv`,
-      ['Name', 'Details', 'Amount', 'Date', 'Status'],
-      reportRowsToExport(data),
-    );
-  }
+  const monthOptions = useMemo(
+    () => [{ value: '', label: 'All months' }, ...buildCollectionMonthOptions(data?.collections ?? [])],
+    [data?.collections],
+  );
 
-  function handlePdf() {
-    if (!data) return;
-    exportToPdf({
-      title: tabs.find((t) => t.id === tab)?.label ?? 'Report',
-      filename: `chitledger-${tab}.pdf`,
-      headers: ['Name', 'Details', 'Amount', 'Date', 'Status'],
-      rows: reportRowsToExport(data),
-    });
-  }
+  const filteredCollections = useMemo(() => {
+    if (!data) return [];
+    if (!collectionMonth) return data.collections;
+    return filterCollectionsByMonth(data.collections, collectionMonth);
+  }, [data, collectionMonth]);
 
-  if (summaryLoading || !summary) {
+  const monthLabel =
+    monthOptions.find((o) => o.value === collectionMonth)?.label ?? 'All months';
+
+  if (isLoading || !data) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <CardSkeleton />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
         <CardSkeleton />
       </div>
     );
   }
+
+  const exportCollectionsPdf = () => {
+    try {
+      exportReportTablePdf({
+        title: 'Collection history',
+        subtitle: monthLabel,
+        summaryItems: collectionKpisSummary(filteredCollections),
+        headers: COLLECTIONS_PDF_HEADERS,
+        rows: collectionsToPdfRows(filteredCollections),
+        filename: `collections-${collectionMonth || 'all'}`,
+        landscape: true,
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  const exportCollectionsCsv = () => {
+    exportToCsv(
+      `collections-${collectionMonth || 'all'}.csv`,
+      COLLECTIONS_PDF_HEADERS,
+      collectionsToPdfRows(filteredCollections),
+    );
+  };
+
+  const exportOutstandingPdf = () => {
+    try {
+      exportReportTablePdf({
+        title: 'Outstanding installments',
+        subtitle: 'Pending, partial, and overdue',
+        headers: OUTSTANDING_PDF_HEADERS,
+        rows: outstandingToPdfRows(data.outstanding),
+        filename: 'outstanding-installments',
+        landscape: true,
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  const exportMaturedPdf = () => {
+    try {
+      exportReportTablePdf({
+        title: 'Matured chits',
+        subtitle: 'Members who completed installment 20',
+        headers: MATURED_PDF_HEADERS,
+        rows: maturedToPdfRows(data.matured),
+        filename: 'matured-chits',
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  const exportWithdrawalsPdf = () => {
+    try {
+      exportReportTablePdf({
+        title: 'Awaiting withdrawal',
+        subtitle: 'Matured chits pending payout',
+        headers: MATURED_PDF_HEADERS,
+        rows: maturedToPdfRows(data.pendingWithdrawals),
+        filename: 'awaiting-withdrawal',
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  const exportPortfolioPdf = () => {
+    try {
+      exportReportTablePdf({
+        title: 'Chit portfolio',
+        subtitle: 'All chits with collection progress',
+        summaryItems: kpisToPdfSummary(data.kpis),
+        headers: PORTFOLIO_PDF_HEADERS,
+        rows: portfolioToPdfRows(data.portfolio),
+        filename: 'chit-portfolio',
+        landscape: true,
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <ReportsHero
-        totalCollected={summary.totalCollected}
-        defaulterCount={summary.defaulterCount}
-        maturedCount={summary.maturedCount}
-        withdrawalPending={summary.withdrawalPending}
+      <ReportsHero kpis={data.kpis} />
+      <ReportsKpiGrid kpis={data.kpis} />
+      <ReportsChartsSection
+        analytics={data.analytics}
+        byStatus={data.byStatus}
+        portfolioMix={data.portfolioMix}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                tab === t.id ? 'bg-accent text-white shadow-sm' : 'bg-card text-muted hover:bg-surface',
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {canExport ? (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleCsv}>
-              <Download className="h-4 w-4" />
-              CSV
-            </Button>
-            <Button variant="accent" size="sm" onClick={handlePdf}>
-              <FileText className="h-4 w-4" />
-              PDF
-            </Button>
-          </div>
-        ) : null}
+      <ReportSection
+        title="Collection history"
+        description="All payments recorded with paid date, amount, and variance"
+        count={filteredCollections.length}
+        canExport={canExport}
+        onExportPdf={exportCollectionsPdf}
+        onExportCsv={exportCollectionsCsv}
+        toolbar={
+          <select
+            value={collectionMonth}
+            onChange={(e) => setCollectionMonth(e.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-primary"
+          >
+            {monthOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        }
+      >
+        <ReportCollectionsTable
+          rows={filteredCollections}
+          emptyMessage="No collections for the selected period."
+        />
+      </ReportSection>
+
+      <ReportSection
+        title="Outstanding installments"
+        description="Pending, partial, and overdue amounts still to be collected"
+        count={data.outstanding.length}
+        canExport={canExport}
+        onExportPdf={exportOutstandingPdf}
+        onExportCsv={() =>
+          exportToCsv(
+            'outstanding.csv',
+            OUTSTANDING_PDF_HEADERS,
+            outstandingToPdfRows(data.outstanding),
+          )
+        }
+      >
+        <ReportOutstandingTable
+          rows={data.outstanding}
+          emptyMessage="No outstanding installments."
+        />
+      </ReportSection>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ReportSection
+          title="Matured chits"
+          description="Completed chit cycles with net maturity payout"
+          count={data.matured.length}
+          canExport={canExport}
+          onExportPdf={exportMaturedPdf}
+        >
+          <ReportMaturedTable rows={data.matured} emptyMessage="No matured chits yet." />
+        </ReportSection>
+
+        <ReportSection
+          title="Awaiting withdrawal"
+          description="Matured chits where payout has not been recorded"
+          count={data.pendingWithdrawals.length}
+          canExport={canExport}
+          onExportPdf={exportWithdrawalsPdf}
+        >
+          <ReportMaturedTable
+            rows={data.pendingWithdrawals}
+            emptyMessage="No chits awaiting withdrawal."
+          />
+        </ReportSection>
       </div>
 
-      <AnalyticsChartsGrid analytics={summary.analytics} />
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-primary">
-          {tabs.find((t) => t.id === tab)?.label}
-        </h2>
-        {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {data?.map((row) => (
-              <Card key={row.id} className="flex justify-between gap-4 p-4">
-                <div>
-                  <p className="font-semibold text-primary">{row.label}</p>
-                  {row.sublabel ? <p className="text-sm text-muted">{row.sublabel}</p> : null}
-                </div>
-                <div className="text-right text-sm">
-                  {row.amount != null ? (
-                    <p className="font-medium text-primary">{formatCurrency(row.amount)}</p>
-                  ) : null}
-                  {row.date ? <p className="text-muted">{row.date}</p> : null}
-                  {row.status ? <p className="capitalize text-muted">{row.status}</p> : null}
-                </div>
-              </Card>
-            ))}
-            {!data?.length ? (
-              <p className="py-12 text-center text-sm text-muted">No records for this report.</p>
-            ) : null}
-          </div>
-        )}
-      </section>
+      <ReportSection
+        title="Full portfolio"
+        description="Every chit with lifecycle status, progress, and balances"
+        count={data.portfolio.length}
+        canExport={canExport}
+        onExportPdf={exportPortfolioPdf}
+        onExportCsv={() =>
+          exportToCsv('portfolio.csv', PORTFOLIO_PDF_HEADERS, portfolioToPdfRows(data.portfolio))
+        }
+      >
+        <ReportPortfolioTable rows={data.portfolio} emptyMessage="No chits in portfolio." />
+      </ReportSection>
     </div>
   );
 }

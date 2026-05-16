@@ -33,8 +33,6 @@ export async function recordWithdrawal(
       withdrawal_by: input.withdrawal_by,
       withdrawal_payment_mode: input.withdrawal_payment_mode,
       withdrawal_proof_url: proofUrl,
-      collection_variance: payout?.collectionVariance ?? null,
-      withdrawal_net_amount: payout?.withdrawalNetAmount ?? null,
     })
     .eq('id', chitId);
 

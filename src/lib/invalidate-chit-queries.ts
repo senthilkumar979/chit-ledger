@@ -13,7 +13,7 @@ export async function invalidateChitQueries(
     queryClient.invalidateQueries({ queryKey: ['chits'] }),
     queryClient.invalidateQueries({ queryKey: ['chits-by-person'] }),
     queryClient.invalidateQueries({ queryKey: ['payments'] }),
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+    queryClient.invalidateQueries({ queryKey: ['dashboard-data'] }),
   ];
 
   if (options?.chitId) {

@@ -59,6 +59,38 @@ export interface Payment {
 
 export type PaymentStatus = 'pending' | 'paid' | 'partial' | 'overdue';
 
+export type LoanStatus = 'active' | 'closed';
+
+export interface Loan {
+  id: string;
+  principal: number;
+  interest_rate: number;
+  interest_amount: number | null;
+  repayment_amount: number | null;
+  status: LoanStatus;
+  start_date: string;
+  closed_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoanRepayment {
+  id: string;
+  loan_id: string;
+  repayment_date: string;
+  principal_paid: number;
+  interest_paid: number;
+  is_final: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoanWithRepayments extends Loan {
+  repayments: LoanRepayment[];
+}
+
 export interface ChitWithPayments extends Chit {
   payments: Payment[];
 }

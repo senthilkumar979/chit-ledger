@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { markPaymentSchema, type MarkPaymentFormData } from '@/schemas/payment';
 import { PaymentModes, paymentModeOptions } from '@/constants/payment-modes';
 import { paidToRecipientOptions } from '@/constants/paid-to-recipients';
+import { AmountInput } from '@/components/ui/AmountInput';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { SelectWithCustom } from '@/components/ui/SelectWithCustom';
@@ -56,12 +57,18 @@ export function MarkPaymentForm({
         Installment <strong>#{payment.installment_no}</strong> — expected{' '}
         <strong>{formatCurrency(expected)}</strong>
       </p>
-      <Input
-        label="Amount paid"
-        type="number"
-        step="0.01"
-        error={errors.amount_paid?.message}
-        {...register('amount_paid', { valueAsNumber: true })}
+      <Controller
+        name="amount_paid"
+        control={control}
+        render={({ field }) => (
+          <AmountInput
+            label="Amount paid"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={errors.amount_paid?.message}
+          />
+        )}
       />
       {numericAmount > 0 && variance !== 0 ? (
         <p

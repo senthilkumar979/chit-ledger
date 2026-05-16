@@ -7,6 +7,7 @@ describe('getPermissions', () => {
     expect(p.canWrite).toBe(true);
     expect(p.canDelete).toBe(true);
     expect(p.canExport).toBe(true);
+    expect(p.canManageLoans).toBe(true);
   });
 
   it('restricts viewer to read only', () => {

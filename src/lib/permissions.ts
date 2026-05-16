@@ -10,6 +10,7 @@ export function getPermissions(role: UserRole | undefined) {
     canDelete: isAdmin,
     canExport: isAdmin,
     canManageUsers: isAdmin,
+    canManageLoans: isAdmin,
     isViewer: role === 'VIEWER',
   };
 }

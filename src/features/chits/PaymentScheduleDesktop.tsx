@@ -8,6 +8,7 @@ import {
   PaymentScheduleRowActions,
   type PaymentScheduleRowActionsProps,
 } from './PaymentScheduleRowActions';
+import { PaymentScheduleCollectedCell } from './PaymentScheduleCollectedCell';
 
 interface PaymentScheduleDesktopProps extends Omit<PaymentScheduleRowActionsProps, 'payment' | 'layout'> {
   payments: Payment[];
@@ -62,7 +63,6 @@ function DesktopRow({
   onEdit,
   onReset,
 }: PaymentScheduleRowActionsProps & { index: number }) {
-  const paid = Number(p.advance_amount_paid ?? 0);
   const variant = paymentStatusVariant(p.status);
   const isPaid = p.status === 'paid' || p.status === 'partial';
 
@@ -79,7 +79,7 @@ function DesktopRow({
       </span>
       <Cell value={formatCurrency(Number(p.expected_amount))} />
       <Cell value={formatCurrency(Number(p.maturity_amount))} />
-      <Cell value={paid > 0 ? formatCurrency(paid) : '—'} />
+      <PaymentScheduleCollectedCell payment={p} />
       <Cell value={p.payment_mode ?? '—'} />
       <Cell value={p.paid_to ?? '—'} />
       <Cell value={p.paid_date ? formatDate(p.paid_date) : '—'} />

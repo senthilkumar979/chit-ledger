@@ -1,30 +1,78 @@
 'use client';
 
-import { IndianRupee, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import {
+  IndianRupee,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+} from 'lucide-react';
+import { formatCurrency, cn } from '@/lib/utils';
+import { summarizeChitPayments } from '@/utils/chit-payment-summary';
 import type { Payment } from '@/types/database';
+import type { LucideIcon } from 'lucide-react';
 
 interface ChitDetailStatsProps {
   payments: Payment[];
 }
 
 export function ChitDetailStats({ payments }: ChitDetailStatsProps) {
-  const paid = payments.filter((p) => p.status === 'paid');
-  const pending = payments.filter((p) => p.status === 'pending');
-  const overdue = payments.filter((p) => p.status === 'overdue');
-  const partial = payments.filter((p) => p.status === 'partial');
+  const summary = summarizeChitPayments(payments);
+  const { collectionVariance, varianceLabel } = summary;
+  const varianceTone =
+    collectionVariance > 0 ? 'accent' : collectionVariance < 0 ? 'warning' : 'default';
+  const VarianceIcon =
+    collectionVariance > 0 ? TrendingUp : collectionVariance < 0 ? TrendingDown : CheckCircle2;
 
-  const collected = paid.reduce((s, p) => s + Number(p.expected_amount), 0);
-  const outstanding = [...pending, ...partial, ...overdue].reduce(
-    (s, p) => s + Number(p.expected_amount),
-    0,
-  );
-
-  const items = [
-    { label: 'Collected', value: formatCurrency(collected), icon: CheckCircle2, tone: 'accent' },
-    { label: 'Outstanding', value: formatCurrency(outstanding), icon: Clock, tone: 'warning' },
-    { label: 'Paid installments', value: paid.length, icon: IndianRupee, tone: 'default' },
-    { label: 'Overdue', value: overdue.length, icon: AlertTriangle, tone: 'danger' },
+  const items: {
+    label: string;
+    value: string;
+    icon: LucideIcon;
+    tone: string;
+    highlight?: boolean;
+  }[] = [
+    {
+      label: 'Collected',
+      value: formatCurrency(summary.totalCollected),
+      icon: IndianRupee,
+      tone: 'accent',
+    },
+    {
+      label: 'Outstanding',
+      value: formatCurrency(summary.outstanding),
+      icon: Clock,
+      tone: 'warning',
+    },
+    {
+      label: varianceLabel,
+      value:
+        collectionVariance === 0
+          ? 'Balanced'
+          : `${collectionVariance > 0 ? '+' : '−'}${formatCurrency(Math.abs(collectionVariance))}`,
+      icon: VarianceIcon,
+      tone: varianceTone,
+    },
+    {
+      label: 'Net maturity',
+      value: formatCurrency(summary.netMaturityPayout),
+      icon: Wallet,
+      tone: 'accent',
+      highlight: true,
+    },
+    {
+      label: 'Paid installments',
+      value: String(summary.paidInstallmentCount),
+      icon: CheckCircle2,
+      tone: 'default',
+    },
+    {
+      label: 'Overdue',
+      value: String(summary.overdueCount),
+      icon: AlertTriangle,
+      tone: 'danger',
+    },
   ];
 
   const toneClasses: Record<string, string> = {
@@ -35,17 +83,22 @@ export function ChitDetailStats({ payments }: ChitDetailStatsProps) {
   };
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map(({ label, value, icon: Icon, tone }) => (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      {items.map(({ label, value, icon: Icon, tone, highlight }) => (
         <div
           key={label}
-          className="rounded-xl border border-border/80 bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+          className={cn(
+            'rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-shadow sm:p-4',
+            highlight && 'border-accent/30 ring-1 ring-accent/15',
+          )}
         >
-          <div className={`mb-3 inline-flex rounded-lg p-2 ${toneClasses[tone]}`}>
+          <div className={cn('mb-2 inline-flex rounded-lg p-2 sm:mb-3', toneClasses[tone])}>
             <Icon className="h-4 w-4" />
           </div>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-primary">{value}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted sm:text-xs">
+            {label}
+          </p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-primary sm:mt-1 sm:text-xl">{value}</p>
         </div>
       ))}
     </div>

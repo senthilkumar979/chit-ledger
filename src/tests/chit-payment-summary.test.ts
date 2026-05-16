@@ -1,0 +1,69 @@
+import { describe, expect, it } from '@jest/globals';
+import {
+  getInstallmentVariance,
+  getRecordedAmount,
+  summarizeChitPayments,
+} from '@/utils/chit-payment-summary';
+import type { Payment } from '@/types/database';
+
+function payment(overrides: Partial<Payment>): Payment {
+  return {
+    id: 'p1',
+    chit_id: 'c1',
+    installment_no: 1,
+    expected_amount: 4480,
+    maturity_amount: 95000,
+    paid_date: null,
+    payment_mode: null,
+    paid_to: null,
+    advance_amount_paid: 0,
+    amount_paid: 0,
+    status: 'pending',
+    created_at: '',
+    updated_at: '',
+    ...overrides,
+  };
+}
+
+describe('chit-payment-summary', () => {
+  it('stores variance when paid over expected', () => {
+    const p = payment({
+      status: 'paid',
+      amount_paid: 4500,
+      paid_date: '2026-01-01',
+    });
+    expect(getRecordedAmount(p)).toBe(4500);
+    expect(getInstallmentVariance(p)).toBe(20);
+  });
+
+  it('stores variance when paid under expected', () => {
+    const p = payment({
+      status: 'partial',
+      amount_paid: 4400,
+      paid_date: '2026-01-01',
+    });
+    expect(getInstallmentVariance(p)).toBe(-80);
+  });
+
+  it('computes net maturity from collection variance', () => {
+    const payments: Payment[] = [
+      payment({
+        installment_no: 1,
+        status: 'paid',
+        amount_paid: 4500,
+        expected_amount: 4480,
+        maturity_amount: 95000,
+      }),
+      payment({
+        installment_no: 20,
+        status: 'pending',
+        expected_amount: 3000,
+        maturity_amount: 95000,
+      }),
+    ];
+    const summary = summarizeChitPayments(payments);
+    expect(summary.collectionVariance).toBe(20);
+    expect(summary.netMaturityPayout).toBe(95020);
+    expect(summary.varianceLabel).toBe('Extra paid');
+  });
+});

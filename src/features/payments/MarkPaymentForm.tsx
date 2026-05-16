@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { SelectWithCustom } from '@/components/ui/SelectWithCustom';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { getRecordedAmount } from '@/utils/chit-payment-summary';
 import type { Payment } from '@/types/database';
 
 interface MarkPaymentFormProps {
@@ -26,7 +27,7 @@ export function MarkPaymentForm({
   isEdit = false,
 }: MarkPaymentFormProps) {
   const expected = Number(payment.expected_amount);
-  const collected = Number(payment.advance_amount_paid ?? expected);
+  const existing = getRecordedAmount(payment);
   const {
     register,
     control,
@@ -40,14 +41,14 @@ export function MarkPaymentForm({
       payment_mode:
         (payment.payment_mode as MarkPaymentFormData['payment_mode']) ?? PaymentModes.CASH,
       paid_to: payment.paid_to ?? '',
-      amount_paid: collected || expected,
-      is_advance: false,
+      amount_paid: existing > 0 ? existing : expected,
     },
   });
 
   const amount = watch('amount_paid');
-  const isPartial = Number(amount) > 0 && Number(amount) < expected;
-  const isAdvance = Number(amount) > expected;
+  const numericAmount = Number(amount) || 0;
+  const variance = numericAmount - expected;
+  const isPartial = numericAmount > 0 && numericAmount < expected;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -62,14 +63,22 @@ export function MarkPaymentForm({
         error={errors.amount_paid?.message}
         {...register('amount_paid', { valueAsNumber: true })}
       />
-      {isPartial ? (
-        <p className="text-xs text-warning">Recorded as partial payment</p>
+      {numericAmount > 0 && variance !== 0 ? (
+        <p
+          className={cn(
+            'rounded-lg px-3 py-2 text-xs font-medium',
+            variance > 0 ? 'bg-accent/10 text-accent' : 'bg-warning/10 text-warning',
+          )}
+        >
+          {variance > 0 ? 'Extra' : 'Shortfall'} of {formatCurrency(Math.abs(variance))} on this
+          installment
+          {variance > 0
+            ? ' — counts toward maturity payout.'
+            : ' — reduces net maturity payout.'}
+        </p>
       ) : null}
-      {isAdvance ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" {...register('is_advance')} />
-          Mark as advance payment
-        </label>
+      {isPartial ? (
+        <p className="text-xs text-warning">Recorded as partial until the full expected amount is paid.</p>
       ) : null}
       <Input
         label="Payment date"
@@ -99,11 +108,16 @@ export function MarkPaymentForm({
           />
         )}
       />
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+      <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row">
+        <Button type="button" variant="outline" className="min-h-11 flex-1" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" variant="accent" className="flex-1" isLoading={isSubmitting}>
+        <Button
+          type="submit"
+          variant="accent"
+          className="min-h-11 flex-1"
+          isLoading={isSubmitting}
+        >
           {isEdit ? 'Update payment' : 'Save payment'}
         </Button>
       </div>

@@ -33,9 +33,12 @@ export interface Chit {
   withdrawal_by: string | null;
   withdrawal_payment_mode: string | null;
   withdrawal_proof_url: string | null;
+  collection_variance: number | null;
+  withdrawal_net_amount: number | null;
   created_at: string;
   updated_at: string;
   person?: Person;
+  payments?: Pick<Payment, 'status'>[];
 }
 
 export interface Payment {
@@ -48,6 +51,7 @@ export interface Payment {
   payment_mode: string | null;
   paid_to: string | null;
   advance_amount_paid: number | null;
+  amount_paid: number | null;
   status: PaymentStatus;
   created_at: string;
   updated_at: string;

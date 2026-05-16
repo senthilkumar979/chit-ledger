@@ -8,6 +8,7 @@ import {
   paymentStatusLabel,
   paymentStatusVariant,
 } from '@/utils/payment-status';
+import { getRecordedAmount, getInstallmentVariance, hasRecordedPayment } from '@/utils/chit-payment-summary';
 import type { Payment } from '@/types/database';
 import type { PaymentWithChit } from '@/utils/payment-month';
 
@@ -26,8 +27,9 @@ export function PaymentRowCard({
   onRecord,
   onEdit,
 }: PaymentRowCardProps) {
-  const collected = Number(p.advance_amount_paid ?? 0);
-  const isPaid = p.status === 'paid';
+  const collected = getRecordedAmount(p);
+  const variance = getInstallmentVariance(p);
+  const isPaid = p.status === 'paid' || p.status === 'partial';
 
   return (
     <article
@@ -49,9 +51,14 @@ export function PaymentRowCard({
           <span className="text-muted">
             Expected <strong className="text-primary">{formatCurrency(Number(p.expected_amount))}</strong>
           </span>
-          {collected > 0 ? (
+          {hasRecordedPayment(p) ? (
             <span className="text-muted">
               Collected <strong className="text-accent">{formatCurrency(collected)}</strong>
+            </span>
+          ) : null}
+          {variance !== 0 ? (
+            <span className={variance > 0 ? 'text-accent' : 'text-warning'}>
+              {variance > 0 ? 'Extra' : 'Short'} {formatCurrency(Math.abs(variance))}
             </span>
           ) : null}
           {p.payment_mode ? (

@@ -8,6 +8,8 @@ import {
   PaymentScheduleRowActions,
   type PaymentScheduleRowActionsProps,
 } from './PaymentScheduleRowActions';
+import { PaymentScheduleCollectedCell } from './PaymentScheduleCollectedCell';
+import { hasRecordedPayment } from '@/utils/chit-payment-summary';
 
 interface PaymentScheduleMobileProps extends Omit<PaymentScheduleRowActionsProps, 'payment' | 'layout'> {
   payments: Payment[];
@@ -56,10 +58,9 @@ function MobileCard({
   onEdit,
   onReset,
 }: PaymentScheduleRowActionsProps & { index: number }) {
-  const paid = Number(p.advance_amount_paid ?? 0);
   const variant = paymentStatusVariant(p.status);
   const isPaid = p.status === 'paid' || p.status === 'partial';
-  const hasPaymentDetails = isPaid || paid > 0;
+  const hasPaymentDetails = hasRecordedPayment(p);
 
   return (
     <article
@@ -92,11 +93,12 @@ function MobileCard({
         <LedgerField label="Maturity" value={formatCurrency(Number(p.maturity_amount))} />
         {hasPaymentDetails ? (
           <>
-            <LedgerField
-              label="Collected"
-              value={paid > 0 ? formatCurrency(paid) : '—'}
-              emphasize={paid > 0}
-            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Collected</p>
+              <div className="mt-0.5">
+                <PaymentScheduleCollectedCell payment={p} stacked />
+              </div>
+            </div>
             <LedgerField
               label="Paid on"
               value={p.paid_date ? formatDate(p.paid_date) : '—'}

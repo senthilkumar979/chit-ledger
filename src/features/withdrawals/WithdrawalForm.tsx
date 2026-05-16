@@ -7,10 +7,12 @@ import { Upload } from 'lucide-react';
 import { withdrawalSchema, type WithdrawalFormData } from '@/schemas/withdrawal';
 import { PaymentModes, paymentModeOptions } from '@/constants/payment-modes';
 import { recordWithdrawal } from '@/services/withdrawals';
+import { MaturityPayoutBreakdown } from '@/components/payments/MaturityPayoutBreakdown';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
+import type { ChitPaymentSummary } from '@/utils/chit-payment-summary';
 
 const defaultWithdrawalValues = (): WithdrawalFormData => ({
   withdrawal_date: new Date().toISOString().split('T')[0],
@@ -20,11 +22,17 @@ const defaultWithdrawalValues = (): WithdrawalFormData => ({
 
 interface WithdrawalFormProps {
   chitId: string;
+  paymentSummary: ChitPaymentSummary;
   onSuccess: () => void;
   onCancel?: () => void;
 }
 
-export function WithdrawalForm({ chitId, onSuccess, onCancel }: WithdrawalFormProps) {
+export function WithdrawalForm({
+  chitId,
+  paymentSummary,
+  onSuccess,
+  onCancel,
+}: WithdrawalFormProps) {
   const [proof, setProof] = useState<File | null>(null);
   const {
     register,
@@ -37,7 +45,10 @@ export function WithdrawalForm({ chitId, onSuccess, onCancel }: WithdrawalFormPr
   });
 
   async function submit(data: WithdrawalFormData) {
-    await recordWithdrawal(chitId, data, proof ?? undefined);
+    await recordWithdrawal(chitId, data, proof ?? undefined, {
+      collectionVariance: paymentSummary.collectionVariance,
+      withdrawalNetAmount: paymentSummary.netMaturityPayout,
+    });
     toast.success('Withdrawal recorded');
     reset(defaultWithdrawalValues());
     setProof(null);
@@ -46,6 +57,7 @@ export function WithdrawalForm({ chitId, onSuccess, onCancel }: WithdrawalFormPr
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4">
+      <MaturityPayoutBreakdown summary={paymentSummary} compact />
       <Input
         label="Withdrawal date"
         type="date"
@@ -61,9 +73,9 @@ export function WithdrawalForm({ chitId, onSuccess, onCancel }: WithdrawalFormPr
       />
       <div>
         <label className="text-sm font-medium text-primary">Proof upload</label>
-        <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface/50 px-4 py-8 transition-colors hover:border-accent/40 hover:bg-accent/5">
+        <label className="mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface/50 px-4 py-6 transition-colors hover:border-accent/40 hover:bg-accent/5">
           <Upload className="mb-2 h-8 w-8 text-muted" />
-          <span className="text-sm font-medium text-primary">
+          <span className="text-center text-sm font-medium text-primary">
             {proof ? proof.name : 'Drop image or PDF'}
           </span>
           <span className="mt-1 text-xs text-muted">PNG, JPG, or PDF</span>
@@ -77,14 +89,14 @@ export function WithdrawalForm({ chitId, onSuccess, onCancel }: WithdrawalFormPr
       </div>
       <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
         {onCancel ? (
-          <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={onCancel}>
+          <Button type="button" variant="outline" className="min-h-11 flex-1 sm:flex-none" onClick={onCancel}>
             Cancel
           </Button>
         ) : null}
         <Button
           type="submit"
           variant="accent"
-          className="flex-1 shadow-md shadow-accent/15 sm:flex-none"
+          className="min-h-11 flex-1 shadow-md shadow-accent/15 sm:flex-none"
           isLoading={isSubmitting}
         >
           Record withdrawal

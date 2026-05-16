@@ -35,10 +35,8 @@ export async function markPayment(
   input: MarkPaymentFormData,
 ): Promise<Payment> {
   const supabase = createClient();
-  const advance = input.is_advance
-    ? input.amount_paid
-    : Math.min(input.amount_paid, expected);
-  const status = computePaymentStatus(expected, input.amount_paid);
+  const amountPaid = input.amount_paid;
+  const status = computePaymentStatus(expected, amountPaid);
 
   const { data, error } = await supabase
     .from('payments')
@@ -46,7 +44,8 @@ export async function markPayment(
       paid_date: input.paid_date,
       payment_mode: input.payment_mode,
       paid_to: input.paid_to,
-      advance_amount_paid: advance,
+      amount_paid: amountPaid,
+      advance_amount_paid: amountPaid,
       status,
     })
     .eq('id', paymentId)
@@ -84,6 +83,7 @@ export async function resetPayment(paymentId: string): Promise<Payment> {
       paid_date: null,
       payment_mode: null,
       paid_to: null,
+      amount_paid: 0,
       advance_amount_paid: 0,
       status: 'pending',
     })

@@ -7,7 +7,7 @@ export async function fetchChitsByPerson(personId: string): Promise<Chit[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('chits')
-    .select('*, person:persons(id, name, city)')
+    .select('*, person:persons(id, name, city), payments(status)')
     .eq('person_id', personId)
     .order('created_at', { ascending: false });
 
@@ -19,7 +19,7 @@ export async function fetchChits(search?: string): Promise<Chit[]> {
   const supabase = createClient();
   let query = supabase
     .from('chits')
-    .select('*, person:persons(id, name, city, phone)')
+    .select('*, person:persons(id, name, city, phone), payments(status)')
     .order('created_at', { ascending: false });
 
   const { data, error } = await query;

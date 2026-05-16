@@ -19,6 +19,7 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
   const initials = getInitials(personName)
   const avatarGradient = getAvatarGradient(personName)
   const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary'
+  const paidCount = chit.payments?.filter((p) => p.status === 'paid').length ?? 0
 
   return (
     <Link
@@ -89,8 +90,8 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
                 {chit.person.city}
               </p>
             ) : null}
-            <span className="font-medium text-primary/80">
-              {INSTALLMENT_COUNT} installments
+            <span className="shrink-0 font-semibold tabular-nums text-primary/80">
+              {paidCount}/{INSTALLMENT_COUNT} paid
             </span>
           </div>
 

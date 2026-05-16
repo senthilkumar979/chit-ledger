@@ -19,6 +19,7 @@ import type { Payment } from '@/types/database'
 import type { MarkPaymentFormData } from '@/schemas/payment'
 import { INSTALLMENT_COUNT } from '../../constants/chit-config'
 import { invalidateChitQueries as invalidateChitRelatedQueries } from '@/lib/invalidate-chit-queries'
+import { summarizeChitPayments } from '@/utils/chit-payment-summary'
 
 interface ChitDetailViewProps {
   chitId: string
@@ -87,6 +88,7 @@ export function ChitDetailView({
   if (isLoading || !chit) return <ChitDetailSkeleton />
 
   const paidCount = chit.payments.filter((p) => p.status === 'paid').length
+  const paymentSummary = summarizeChitPayments(chit.payments)
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -139,7 +141,7 @@ export function ChitDetailView({
       </div>
 
       {chit.withdrawal && chit.withdrawal_date ? (
-        <ChitWithdrawalSummary chit={chit} />
+        <ChitWithdrawalSummary chit={chit} payments={chit.payments} />
       ) : null}
 
       <Modal
@@ -153,6 +155,7 @@ export function ChitDetailView({
         </p>
         <WithdrawalForm
           chitId={chit.id}
+          paymentSummary={paymentSummary}
           onSuccess={() => {
             void refreshChitData()
             setWithdrawalOpen(false)

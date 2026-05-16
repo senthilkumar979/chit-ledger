@@ -8,7 +8,6 @@ export const markPaymentSchema = z.object({
   payment_mode: z.enum(modeValues),
   paid_to: z.string().min(1, 'Paid to is required'),
   amount_paid: z.number({ error: 'Amount is required' }).positive('Amount must be positive'),
-  is_advance: z.boolean().optional(),
 });
 
 export type MarkPaymentFormData = z.infer<typeof markPaymentSchema>;

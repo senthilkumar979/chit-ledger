@@ -20,6 +20,8 @@ interface ChitFormProps {
   onCancel: () => void;
   mode?: 'create' | 'edit';
   initialChit?: Pick<Chit, 'person_id' | 'type' | 'category' | 'start_date' | 'end_date'>;
+  /** When set in create mode, member is fixed to this person. */
+  lockPersonId?: string;
 }
 
 const typeOptions = [
@@ -32,6 +34,7 @@ const categoryOptions = ChitCategories.map((c) => ({ value: c, label: c }));
 function defaultFormValues(
   mode: 'create' | 'edit',
   initialChit?: ChitFormProps['initialChit'],
+  lockPersonId?: string,
 ): ChitFormData {
   if (mode === 'edit' && initialChit) {
     return {
@@ -43,7 +46,7 @@ function defaultFormValues(
     };
   }
   return {
-    person_id: '',
+    person_id: lockPersonId ?? initialChit?.person_id ?? '',
     type: ChitTypes.ONE_LAKH,
     category: ChitCategories[0],
     start_date: '',
@@ -56,8 +59,10 @@ export function ChitForm({
   onCancel,
   mode = 'create',
   initialChit,
+  lockPersonId,
 }: ChitFormProps) {
   const isEdit = mode === 'edit';
+  const lockedPersonId = !isEdit ? lockPersonId : undefined;
   const { data: persons } = useQuery({
     queryKey: ['persons'],
     queryFn: () => fetchPersons(),
@@ -71,7 +76,7 @@ export function ChitForm({
     formState: { errors, isSubmitting },
   } = useForm<ChitFormData>({
     resolver: zodResolver(chitSchema),
-    defaultValues: defaultFormValues(mode, initialChit),
+    defaultValues: defaultFormValues(mode, initialChit, lockPersonId),
   });
 
   const startDate = watch('start_date');
@@ -81,18 +86,38 @@ export function ChitForm({
     if (startDate) setValue('end_date', chitEndDateFromStart(startDate));
   }, [startDate, setValue]);
 
+  useEffect(() => {
+    if (lockedPersonId) setValue('person_id', lockedPersonId);
+  }, [lockedPersonId, setValue]);
+
   const personOptions =
     persons?.map((p) => ({ value: p.id, label: `${p.name} · ${p.city}` })) ?? [];
 
+  const lockedPerson = lockedPersonId
+    ? persons?.find((p) => p.id === lockedPersonId)
+    : undefined;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <Select
-        label="Member"
-        options={personOptions}
-        placeholder="Select member"
-        error={errors.person_id?.message}
-        {...register('person_id')}
-      />
+      {lockedPersonId ? (
+        <>
+          <input type="hidden" {...register('person_id')} />
+          <div className="rounded-lg border border-border bg-surface/80 px-3 py-3">
+            <p className="text-xs font-medium text-muted">Member</p>
+            <p className="mt-1 text-sm font-semibold text-primary">
+              {lockedPerson ? `${lockedPerson.name} · ${lockedPerson.city}` : 'Loading…'}
+            </p>
+          </div>
+        </>
+      ) : (
+        <Select
+          label="Member"
+          options={personOptions}
+          placeholder="Select member"
+          error={errors.person_id?.message}
+          {...register('person_id')}
+        />
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         {isEdit ? (
           <div className="sm:col-span-2 rounded-lg border border-border bg-surface/80 px-3 py-3">

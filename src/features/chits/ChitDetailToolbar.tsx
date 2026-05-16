@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChitForm } from './ChitForm'
+import { invalidateChitQueries } from '@/lib/invalidate-chit-queries'
 
 interface ChitDetailToolbarProps {
   chit: ChitWithPayments
@@ -30,12 +31,10 @@ export function ChitDetailToolbar({
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function invalidateLists() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['chit', chit.id] }),
-      queryClient.invalidateQueries({ queryKey: ['chits'] }),
-      queryClient.invalidateQueries({ queryKey: ['chits-by-person'] }),
-      queryClient.invalidateQueries({ queryKey: ['payments'] }),
-    ])
+    await invalidateChitQueries(queryClient, {
+      chitId: chit.id,
+      personId: chit.person_id,
+    })
   }
 
   async function handleUpdate(form: ChitFormData) {

@@ -1,14 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchPersonById } from '@/services/persons';
-import { fetchChitsByPerson } from '@/services/chits';
+import { fetchChitsByPerson, createChit } from '@/services/chits';
+import { ChitForm } from '@/features/chits/ChitForm';
 import { BackLink } from '@/components/layout/BackLink';
+import { Modal } from '@/components/ui/Modal';
 import { PersonDetailHero } from './PersonDetailHero';
 import { PersonDetailToolbar } from './PersonDetailToolbar';
 import { PersonLinkedChits } from './PersonLinkedChits';
 import { PersonDetailSkeleton } from './PersonDetailSkeleton';
+import { invalidateChitQueries } from '@/lib/invalidate-chit-queries';
+import { toast } from 'sonner';
+import type { ChitFormData } from '@/schemas/chit';
 
 interface PersonDetailViewProps {
   personId: string;
@@ -22,6 +28,8 @@ export function PersonDetailView({
   canDelete,
 }: PersonDetailViewProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [showChitForm, setShowChitForm] = useState(false);
 
   const { data: person, isLoading, refetch } = useQuery({
     queryKey: ['person', personId],
@@ -33,6 +41,13 @@ export function PersonDetailView({
     queryFn: () => fetchChitsByPerson(personId),
     enabled: Boolean(person),
   });
+
+  async function handleCreateChit(form: ChitFormData) {
+    await createChit(form);
+    toast.success('Chit created with 20 installments');
+    setShowChitForm(false);
+    await invalidateChitQueries(queryClient, { personId });
+  }
 
   if (isLoading) return <PersonDetailSkeleton />;
 
@@ -62,8 +77,24 @@ export function PersonDetailView({
       <PersonLinkedChits
         chits={chits}
         canWrite={canWrite}
-        onAddChit={canWrite ? () => router.push('/chits') : undefined}
+        onAddChit={canWrite ? () => setShowChitForm(true) : undefined}
       />
+
+      <Modal
+        isOpen={showChitForm}
+        onClose={() => setShowChitForm(false)}
+        title="Create chit for member"
+        className="max-w-lg"
+      >
+        <p className="mb-5 text-sm text-muted">
+          Link a scheme to {person.name}. Twenty installments are generated on save.
+        </p>
+        <ChitForm
+          lockPersonId={personId}
+          onSubmit={handleCreateChit}
+          onCancel={() => setShowChitForm(false)}
+        />
+      </Modal>
     </div>
   );
 }

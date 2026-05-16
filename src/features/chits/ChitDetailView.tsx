@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import type { Payment } from '@/types/database'
 import type { MarkPaymentFormData } from '@/schemas/payment'
 import { INSTALLMENT_COUNT } from '../../constants/chit-config'
+import { invalidateChitQueries as invalidateChitRelatedQueries } from '@/lib/invalidate-chit-queries'
 
 interface ChitDetailViewProps {
   chitId: string
@@ -40,13 +41,11 @@ export function ChitDetailView({
     queryFn: () => fetchChitById(chitId),
   })
 
-  async function invalidateChitQueries() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['chit', chitId] }),
-      queryClient.invalidateQueries({ queryKey: ['chits'] }),
-      queryClient.invalidateQueries({ queryKey: ['chits-by-person'] }),
-      queryClient.invalidateQueries({ queryKey: ['payments'] }),
-    ])
+  async function refreshChitData() {
+    await invalidateChitRelatedQueries(queryClient, {
+      chitId,
+      personId: chit?.person_id,
+    })
   }
 
   async function handleSubmit(form: MarkPaymentFormData) {
@@ -155,7 +154,7 @@ export function ChitDetailView({
         <WithdrawalForm
           chitId={chit.id}
           onSuccess={() => {
-            void invalidateChitQueries()
+            void refreshChitData()
             setWithdrawalOpen(false)
           }}
           onCancel={() => setWithdrawalOpen(false)}

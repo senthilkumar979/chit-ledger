@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Landmark, Plus } from 'lucide-react';
 import { fetchChits, createChit } from '@/services/chits';
@@ -13,6 +13,7 @@ import { ChitForm } from './ChitForm';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
+import { invalidateChitQueries } from '@/lib/invalidate-chit-queries';
 import { cn } from '@/lib/utils';
 import type { ChitFormData } from '@/schemas/chit';
 import type { ChitStatusFilter } from '@/constants/chit-labels';
@@ -31,13 +32,14 @@ function matchesStatus(chit: Chit, filter: ChitStatusFilter): boolean {
 
 export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<ChitStatusFilter>('all');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [showForm, setShowForm] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['chits', search],
     queryFn: () => fetchChits(search),
   });
@@ -64,7 +66,7 @@ export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
     const chit = await createChit(form);
     toast.success('Chit created with 20 installments');
     setShowForm(false);
-    refetch();
+    await invalidateChitQueries(queryClient, { personId: form.person_id, chitId: chit.id });
     router.push(`/chits/${chit.id}`);
   }
 

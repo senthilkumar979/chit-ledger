@@ -3,11 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { UserPlus, Users } from 'lucide-react';
-import { fetchPersons, createPerson } from '@/services/persons';
+import { fetchPersonsWithStats, createPerson } from '@/services/persons';
+import { usePersonsViewMode } from '@/hooks/usePersonsViewMode';
 import { PersonsHero } from './PersonsHero';
 import { PersonsToolbar } from './PersonsToolbar';
 import { PersonCard } from './PersonCard';
 import { PersonCardSkeleton } from './PersonCardSkeleton';
+import { PersonsTable } from './PersonsTable';
+import { PersonsTableSkeleton } from './PersonsTableSkeleton';
 import { PersonForm } from './PersonForm';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -22,12 +25,12 @@ interface PersonsPageViewProps {
 export function PersonsPageView({ canWrite }: PersonsPageViewProps) {
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [showForm, setShowForm] = useState(false);
+  const { view, setView, isReady } = usePersonsViewMode();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['persons', search],
-    queryFn: () => fetchPersons(search),
+    queryFn: () => fetchPersonsWithStats(search),
   });
 
   const cities = useMemo(() => {
@@ -57,6 +60,10 @@ export function PersonsPageView({ canWrite }: PersonsPageViewProps) {
     refetch();
   }
 
+  const emptyMessage = search || cityFilter
+    ? 'No matching members for the current filters.'
+    : 'No members yet.';
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <PersonsHero {...stats} />
@@ -73,14 +80,12 @@ export function PersonsPageView({ canWrite }: PersonsPageViewProps) {
         onAdd={() => setShowForm(true)}
       />
 
-      {isLoading ? (
-        <div className={cn('grid gap-4', view === 'grid' ? 'sm:grid-cols-2 xl:grid-cols-3' : '')}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <PersonCardSkeleton key={i} />
-          ))}
-        </div>
+      {!isReady || isLoading ? (
+        <MembersLoading view={view} />
       ) : !filtered.length ? (
         <EmptyMembers canWrite={canWrite} hasFilters={Boolean(search || cityFilter)} onAdd={() => setShowForm(true)} />
+      ) : view === 'table' ? (
+        <PersonsTable persons={filtered} emptyMessage={emptyMessage} />
       ) : (
         <div
           className={cn(
@@ -106,6 +111,18 @@ export function PersonsPageView({ canWrite }: PersonsPageViewProps) {
         </p>
         <PersonForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} submitLabel="Create member" />
       </Modal>
+    </div>
+  );
+}
+
+function MembersLoading({ view }: { view: 'grid' | 'list' | 'table' }) {
+  if (view === 'table') return <PersonsTableSkeleton />;
+
+  return (
+    <div className={cn('grid gap-4', view === 'grid' ? 'sm:grid-cols-2 xl:grid-cols-3' : '')}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <PersonCardSkeleton key={i} />
+      ))}
     </div>
   );
 }

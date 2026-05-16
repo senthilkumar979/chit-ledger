@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { chitTypeLabels } from '@/constants/chit-labels';
 export interface DashboardChitRow {
   id: string;
   matured: boolean;
@@ -167,7 +168,7 @@ export function breakdownForCalendarMonth(
 
   for (const payment of filterCalendarMonthCollections(payments, monthKey)) {
     const amt = getRecordedAmount(payment);
-    const type = payment.chit?.type === 'TWO_LAKH' ? '₹2 Lakh' : '₹1 Lakh';
+    const type = chitTypeLabels[payment.chit?.type ?? ''] ?? 'Unknown';
     byType.set(type, (byType.get(type) ?? 0) + amt);
     byCity.set(payment.chit?.person?.city ?? 'Unknown', (byCity.get(payment.chit?.person?.city ?? 'Unknown') ?? 0) + amt);
     const cat = payment.chit?.category ?? 'Other';

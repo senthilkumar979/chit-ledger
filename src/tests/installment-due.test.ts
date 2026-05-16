@@ -1,13 +1,19 @@
 import {
   chitEndDateFromStart,
+  formatInstallmentDueMonth,
   getInstallmentDueDate,
   isInstallmentDueInMonth,
   pendingAmount,
 } from '@/utils/installment-due';
 
 describe('installment-due', () => {
-  it('computes end date as start + 20 months', () => {
-    expect(chitEndDateFromStart('2025-01-15')).toBe('2026-09-15');
+  it('computes end date as start + 19 months', () => {
+    expect(chitEndDateFromStart('2025-01-15')).toBe('2026-08-15');
+  });
+
+  it('formats installment due month as Mon YYYY', () => {
+    expect(formatInstallmentDueMonth('2026-01-01', 5)).toBe('May 2026');
+    expect(formatInstallmentDueMonth('2026-01-01', 6)).toBe('Jun 2026');
   });
 
   it('detects installment due month', () => {

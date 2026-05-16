@@ -1,9 +1,13 @@
 import type { Payment } from '@/types/database';
 
 export function getRecordedAmount(payment: Payment): number {
-  const raw = payment.amount_paid ?? payment.advance_amount_paid;
-  if (raw == null) return 0;
-  return Number(raw);
+  const amount = payment.amount_paid != null ? Number(payment.amount_paid) : null;
+  const advance =
+    payment.advance_amount_paid != null ? Number(payment.advance_amount_paid) : null;
+
+  if (amount != null && amount > 0) return amount;
+  if (advance != null && advance > 0) return advance;
+  return 0;
 }
 
 export function hasRecordedPayment(payment: Payment): boolean {

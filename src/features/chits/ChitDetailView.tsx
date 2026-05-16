@@ -130,6 +130,7 @@ export function ChitDetailView({
         <div className="p-4 sm:p-6">
           <PaymentSchedule
             payments={chit.payments}
+            startDate={chit.start_date}
             canWrite={canWrite}
             onMarkPaid={(p) => {
               setMode('record')

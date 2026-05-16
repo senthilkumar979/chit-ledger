@@ -7,6 +7,7 @@ import { formatDate, cn } from '@/lib/utils'
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels'
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar'
 import { ChitDetailHeroProgressPanel } from './ChitDetailHeroProgressPanel'
+import { chitEndDateFromStart } from '@/utils/installment-due'
 import type { ChitWithPayments } from '@/types/database'
 
 interface ChitDetailHeroProps {
@@ -29,9 +30,10 @@ export function ChitDetailHero({
   const avatarGradient = getAvatarGradient(personName)
   const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary'
   const showWithdrawalCta = Boolean(canWrite && onRecordWithdrawal)
+  const displayEndDate = chit.start_date ? chitEndDateFromStart(chit.start_date) : chit.end_date
   const dateRows = [
     { label: 'Start' as const, value: chit.start_date },
-    { label: 'End' as const, value: chit.end_date },
+    { label: 'End' as const, value: displayEndDate },
   ]
 
   return (

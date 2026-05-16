@@ -4,7 +4,7 @@ import { ChitCategories } from '@/constants/chit-categories';
 
 export const chitSchema = z.object({
   person_id: z.string().uuid('Select a member'),
-  type: z.enum([ChitTypes.ONE_LAKH, ChitTypes.TWO_LAKH]),
+  type: z.enum([ChitTypes.FIFTY_THOUSAND, ChitTypes.ONE_LAKH, ChitTypes.TWO_LAKH]),
   category: z.enum(ChitCategories),
   start_date: z.string().optional().or(z.literal('')),
   end_date: z.string().optional().or(z.literal('')),

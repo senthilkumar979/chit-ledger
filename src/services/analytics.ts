@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { chitTypeLabels } from '@/constants/chit-labels';
 import { format } from 'date-fns';
 import {
   isInstallmentDueInMonth,
@@ -68,7 +69,7 @@ export async function fetchAnalytics(): Promise<AnalyticsBundle> {
     const monthKey = p.paid_date.slice(0, 7);
     sumMap(byMonth, monthKey, amt);
 
-    const type = p.chit?.type === 'TWO_LAKH' ? '₹2 Lakh' : '₹1 Lakh';
+    const type = chitTypeLabels[p.chit?.type ?? ''] ?? 'Unknown';
     sumMap(byType, type, amt);
     sumMap(byCity, p.chit?.person?.city ?? 'Unknown', amt);
     sumMap(byCategory, p.chit?.category ?? 'Other', amt);

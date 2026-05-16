@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { ArrowUpRight, MapPin, Phone, StickyNote } from 'lucide-react';
-import { formatDate, cn } from '@/lib/utils';
+import { ActiveChitsLabel } from './ActiveChitsLabel';
+import { cn } from '@/lib/utils';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
-import type { Person } from '@/types/database';
+import type { PersonWithStats } from '@/services/persons';
 
 interface PersonCardProps {
-  person: Person;
+  person: PersonWithStats;
   index?: number;
   variant?: 'grid' | 'list';
 }
@@ -36,7 +37,7 @@ export function PersonCard({ person, index = 0, variant = 'grid' }: PersonCardPr
           'group-hover:opacity-100',
         )}
       />
-      <div className="relative flex items-start gap-4">
+      <div className="relative flex items-start gap-4 sm:flex-1">
         <div
           className={cn(
             'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl',
@@ -84,14 +85,12 @@ export function PersonCard({ person, index = 0, variant = 'grid' }: PersonCardPr
           </div>
           <div
             className={cn(
-              'flex items-center justify-between',
-              variant === 'list' ? 'mt-1 sm:mt-0 sm:ml-auto sm:border-0 sm:pt-0' : 'mt-3 border-t border-border/60 pt-3',
+              'flex items-center justify-between gap-2',
+              variant === 'list' ? 'mt-2 sm:mt-0' : 'mt-3 border-t border-border/60 pt-3',
             )}
           >
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted/80">
-              Joined {formatDate(person.created_at)}
-            </span>
-            {hasNotes ? (
+            <ActiveChitsLabel count={person.activeChitCount} compact={variant === 'list'} />
+            {hasNotes && variant === 'grid' ? (
               <span className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-[11px] text-muted">
                 <StickyNote className="h-3 w-3" />
                 Notes

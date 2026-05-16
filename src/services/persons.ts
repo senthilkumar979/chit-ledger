@@ -2,6 +2,15 @@ import { createClient } from '@/lib/supabase/client';
 import type { Person } from '@/types/database';
 import type { PersonFormData } from '@/schemas/person';
 
+export interface PersonWithStats extends Person {
+  activeChitCount: number;
+}
+
+interface PersonChitRow {
+  matured: boolean;
+  withdrawal: boolean;
+}
+
 export async function fetchPersonById(id: string): Promise<Person> {
   const supabase = createClient();
   const { data, error } = await supabase.from('persons').select('*').eq('id', id).single();
@@ -10,8 +19,16 @@ export async function fetchPersonById(id: string): Promise<Person> {
 }
 
 export async function fetchPersons(search?: string): Promise<Person[]> {
+  const rows = await fetchPersonsWithStats(search);
+  return rows;
+}
+
+export async function fetchPersonsWithStats(search?: string): Promise<PersonWithStats[]> {
   const supabase = createClient();
-  let query = supabase.from('persons').select('*').order('name');
+  let query = supabase
+    .from('persons')
+    .select('*, chits(matured, withdrawal)')
+    .order('name');
 
   if (search?.trim()) {
     query = query.or(
@@ -21,7 +38,12 @@ export async function fetchPersons(search?: string): Promise<Person[]> {
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data ?? []) as Person[];
+
+  return (data ?? []).map((row) => {
+    const { chits, ...person } = row as Person & { chits?: PersonChitRow[] };
+    const activeChitCount = (chits ?? []).filter((c) => !c.matured && !c.withdrawal).length;
+    return { ...(person as Person), activeChitCount };
+  });
 }
 
 export async function createPerson(input: PersonFormData): Promise<Person> {

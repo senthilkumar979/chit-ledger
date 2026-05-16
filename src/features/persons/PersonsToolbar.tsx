@@ -1,6 +1,7 @@
 'use client';
 
-import { LayoutGrid, List, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { LayoutGrid, List, Plus, Search, SlidersHorizontal, Table2, X } from 'lucide-react';
+import type { PersonsViewMode } from '@/hooks/usePersonsViewMode';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 
@@ -10,8 +11,8 @@ interface PersonsToolbarProps {
   cities: string[];
   cityFilter: string;
   onCityFilter: (city: string) => void;
-  view: 'grid' | 'list';
-  onViewChange: (v: 'grid' | 'list') => void;
+  view: PersonsViewMode;
+  onViewChange: (v: PersonsViewMode) => void;
   resultCount: number;
   canWrite: boolean;
   onAdd: () => void;
@@ -65,11 +66,14 @@ export function PersonsToolbar({
 
         <div className="flex items-center gap-2">
           <div className="flex rounded-xl border border-border bg-card p-1">
-            <ViewBtn active={view === 'grid'} onClick={() => onViewChange('grid')} label="Grid">
+            <ViewBtn active={view === 'grid'} onClick={() => onViewChange('grid')} label="Cards">
               <LayoutGrid className="h-4 w-4" />
             </ViewBtn>
             <ViewBtn active={view === 'list'} onClick={() => onViewChange('list')} label="List">
               <List className="h-4 w-4" />
+            </ViewBtn>
+            <ViewBtn active={view === 'table'} onClick={() => onViewChange('table')} label="Table">
+              <Table2 className="h-4 w-4" />
             </ViewBtn>
           </div>
           {canWrite ? (
@@ -91,7 +95,7 @@ export function PersonsToolbar({
           <FilterChip active={!cityFilter} onClick={() => onCityFilter('')}>
             All
           </FilterChip>
-          {cities.slice(0, 8).map((city) => (
+          {cities.map((city) => (
             <FilterChip key={city} active={cityFilter === city} onClick={() => onCityFilter(city)}>
               {city}
             </FilterChip>

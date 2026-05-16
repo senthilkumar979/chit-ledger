@@ -1,6 +1,7 @@
 'use client';
 
-import { LayoutGrid, List, Plus, Search, X } from 'lucide-react';
+import { LayoutGrid, List, Plus, Search, Table2, X } from 'lucide-react';
+import type { CatalogViewMode } from '@/hooks/useCatalogViewMode';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { chitTypeLabels } from '@/constants/chit-labels';
@@ -14,8 +15,8 @@ interface ChitsToolbarProps {
   onTypeFilter: (v: string) => void;
   statusFilter: ChitStatusFilter;
   onStatusFilter: (v: ChitStatusFilter) => void;
-  view: 'grid' | 'list';
-  onViewChange: (v: 'grid' | 'list') => void;
+  view: CatalogViewMode;
+  onViewChange: (v: CatalogViewMode) => void;
   resultCount: number;
   canWrite: boolean;
   onAdd: () => void;
@@ -72,11 +73,14 @@ export function ChitsToolbar({
 
         <div className="flex items-center gap-2">
           <div className="flex rounded-xl border border-border bg-card p-1">
-            <ViewToggle active={view === 'grid'} onClick={() => onViewChange('grid')} label="Grid">
+            <ViewToggle active={view === 'grid'} onClick={() => onViewChange('grid')} label="Cards">
               <LayoutGrid className="h-4 w-4" />
             </ViewToggle>
             <ViewToggle active={view === 'list'} onClick={() => onViewChange('list')} label="List">
               <List className="h-4 w-4" />
+            </ViewToggle>
+            <ViewToggle active={view === 'table'} onClick={() => onViewChange('table')} label="Table">
+              <Table2 className="h-4 w-4" />
             </ViewToggle>
           </div>
           {canWrite ? (
@@ -91,6 +95,12 @@ export function ChitsToolbar({
       <div className="flex flex-wrap items-center gap-2">
         <Chip active={!typeFilter} onClick={() => onTypeFilter('')}>
           All types
+        </Chip>
+        <Chip
+          active={typeFilter === ChitTypes.FIFTY_THOUSAND}
+          onClick={() => onTypeFilter(ChitTypes.FIFTY_THOUSAND)}
+        >
+          {chitTypeLabels[ChitTypes.FIFTY_THOUSAND]}
         </Chip>
         <Chip active={typeFilter === ChitTypes.ONE_LAKH} onClick={() => onTypeFilter(ChitTypes.ONE_LAKH)}>
           {chitTypeLabels[ChitTypes.ONE_LAKH]}

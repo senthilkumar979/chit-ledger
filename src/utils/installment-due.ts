@@ -31,8 +31,20 @@ export function addMonthsToDateString(startDate: string, months: number): string
   return `${y}-${m}-${d}`;
 }
 
+/** Last installment (20) is due in start month + 19. */
+export const CHIT_END_MONTHS_FROM_START = 19;
+
 export function chitEndDateFromStart(startDate: string): string {
-  return addMonthsToDateString(startDate, 20);
+  return addMonthsToDateString(startDate, CHIT_END_MONTHS_FROM_START);
+}
+
+export function formatInstallmentDueMonth(
+  startDate: string | null | undefined,
+  installmentNo: number,
+): string {
+  if (!startDate) return '—';
+  const due = getInstallmentDueDate(startDate, installmentNo);
+  return new Intl.DateTimeFormat('en-IN', { month: 'short', year: 'numeric' }).format(due);
 }
 
 export function pendingAmount(expected: number, advance: number | null): number {

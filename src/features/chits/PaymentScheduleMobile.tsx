@@ -10,13 +10,16 @@ import {
 } from './PaymentScheduleRowActions';
 import { PaymentScheduleCollectedCell } from './PaymentScheduleCollectedCell';
 import { hasRecordedPayment } from '@/utils/chit-payment-summary';
+import { formatInstallmentDueMonth } from '@/utils/installment-due';
 
 interface PaymentScheduleMobileProps extends Omit<PaymentScheduleRowActionsProps, 'payment' | 'layout'> {
   payments: Payment[];
+  startDate: string | null;
 }
 
 export function PaymentScheduleMobile({
   payments,
+  startDate,
   canWrite,
   confirmReset,
   onConfirmReset,
@@ -34,6 +37,7 @@ export function PaymentScheduleMobile({
           <MobileCard
             key={p.id}
             payment={p}
+            startDate={startDate}
             index={i}
             canWrite={canWrite}
             confirmReset={confirmReset}
@@ -50,6 +54,7 @@ export function PaymentScheduleMobile({
 
 function MobileCard({
   payment: p,
+  startDate,
   index,
   canWrite,
   confirmReset,
@@ -57,7 +62,7 @@ function MobileCard({
   onMarkPaid,
   onEdit,
   onReset,
-}: PaymentScheduleRowActionsProps & { index: number }) {
+}: PaymentScheduleRowActionsProps & { startDate: string | null; index: number }) {
   const variant = paymentStatusVariant(p.status);
   const isPaid = p.status === 'paid' || p.status === 'partial';
   const hasPaymentDetails = hasRecordedPayment(p);
@@ -78,8 +83,11 @@ function MobileCard({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Installment</p>
           <p className="truncate text-sm font-semibold text-primary">
             #{p.installment_no}
+            <span className="ml-1.5 font-normal text-muted">
+              · {formatInstallmentDueMonth(startDate, p.installment_no)}
+            </span>
             {p.installment_no === 20 ? (
-              <span className="ml-1.5 font-normal text-muted">· maturity</span>
+              <span className="ml-1 font-normal text-muted">· maturity</span>
             ) : null}
           </p>
         </div>
@@ -89,6 +97,11 @@ function MobileCard({
       </header>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-5 px-4 py-4">
+        <LedgerField
+          label="Due month"
+          value={formatInstallmentDueMonth(startDate, p.installment_no)}
+          emphasize
+        />
         <LedgerField label="Expected" value={formatCurrency(Number(p.expected_amount))} emphasize />
         <LedgerField label="Maturity" value={formatCurrency(Number(p.maturity_amount))} />
         {hasPaymentDetails ? (

@@ -1,4 +1,5 @@
 export const ChitTypes = {
+  FIFTY_THOUSAND: 'FIFTY_THOUSAND',
   ONE_LAKH: 'ONE_LAKH',
   TWO_LAKH: 'TWO_LAKH',
 } as const;
@@ -19,6 +20,12 @@ export const ONE_LAKH = {
   ],
 } as const;
 
+/** ₹50K scheme — same 20 installments as ₹1L, half the payment and maturity amounts. */
+export const FIFTY_THOUSAND = {
+  payments: ONE_LAKH.payments.map((amount) => amount / 2),
+  maturity: ONE_LAKH.maturity.map((amount) => amount / 2),
+} as const;
+
 export const TWO_LAKH = {
   payments: [
     5000, 4267.5, 4310, 4352.5, 4395, 4437.5, 4480, 4522.5, 4565,
@@ -32,6 +39,12 @@ export const TWO_LAKH = {
   ],
 } as const;
 
+const CHIT_SCHEDULES = {
+  [ChitTypes.FIFTY_THOUSAND]: FIFTY_THOUSAND,
+  [ChitTypes.ONE_LAKH]: ONE_LAKH,
+  [ChitTypes.TWO_LAKH]: TWO_LAKH,
+} as const;
+
 export function getChitSchedule(type: ChitType) {
-  return type === ChitTypes.ONE_LAKH ? ONE_LAKH : TWO_LAKH;
+  return CHIT_SCHEDULES[type];
 }

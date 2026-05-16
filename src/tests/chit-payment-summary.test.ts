@@ -26,6 +26,16 @@ function payment(overrides: Partial<Payment>): Payment {
 }
 
 describe('chit-payment-summary', () => {
+  it('reads amount from advance_amount_paid when amount_paid is zero', () => {
+    const p = payment({
+      status: 'paid',
+      amount_paid: 0,
+      advance_amount_paid: 4500,
+      paid_date: '2026-01-01',
+    });
+    expect(getRecordedAmount(p)).toBe(4500);
+  });
+
   it('stores variance when paid over expected', () => {
     const p = payment({
       status: 'paid',

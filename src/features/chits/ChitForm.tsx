@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { chitSchema, type ChitFormData } from '@/schemas/chit';
 import { ChitTypes } from '@/constants/chit-config';
-import { chitTypeLabels } from '@/constants/chit-labels';
+import { chitTypeFormOptions, chitTypeLabels } from '@/constants/chit-labels';
 import { ChitCategories } from '@/constants/chit-categories';
 import { fetchPersons } from '@/services/persons';
 import { chitEndDateFromStart } from '@/utils/installment-due';
@@ -23,11 +23,6 @@ interface ChitFormProps {
   /** When set in create mode, member is fixed to this person. */
   lockPersonId?: string;
 }
-
-const typeOptions = [
-  { value: ChitTypes.ONE_LAKH, label: '₹1 Lakh — 20 installments' },
-  { value: ChitTypes.TWO_LAKH, label: '₹2 Lakh — 20 installments' },
-];
 
 const categoryOptions = ChitCategories.map((c) => ({ value: c, label: c }));
 
@@ -131,7 +126,7 @@ export function ChitForm({
             <input type="hidden" {...register('type')} />
           </div>
         ) : (
-          <Select label="Chit type" options={typeOptions} {...register('type')} />
+          <Select label="Chit type" options={[...chitTypeFormOptions]} {...register('type')} />
         )}
         <Select
           label="Collection schedule"
@@ -150,7 +145,7 @@ export function ChitForm({
         />
         <div>
           <Input label="End date" type="date" readOnly className="bg-surface/80" {...register('end_date')} />
-          <p className="mt-1 text-xs text-muted">Auto-calculated: start + 20 months</p>
+          <p className="mt-1 text-xs text-muted">Auto-calculated: start + 19 months</p>
         </div>
       </div>
       {!isEdit ? (

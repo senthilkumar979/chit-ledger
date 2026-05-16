@@ -151,6 +151,7 @@ export function EnterpriseReportsView({
           <FilterField label="Chit type">
             <select value={chitType} onChange={(e) => setChitType(e.target.value)} className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm">
               <option value="">All</option>
+              <option value="FIFTY_THOUSAND">₹50K</option>
               <option value="ONE_LAKH">₹1 Lakh</option>
               <option value="TWO_LAKH">₹2 Lakh</option>
             </select>

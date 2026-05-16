@@ -7,6 +7,7 @@ import { PaymentScheduleMobile } from './PaymentScheduleMobile';
 
 interface PaymentScheduleProps {
   payments: Payment[];
+  startDate: string | null;
   onMarkPaid?: (payment: Payment) => void;
   onEdit?: (payment: Payment) => void;
   onReset?: (payment: Payment) => void;
@@ -15,6 +16,7 @@ interface PaymentScheduleProps {
 
 export function PaymentSchedule({
   payments,
+  startDate,
   onMarkPaid,
   onEdit,
   onReset,
@@ -33,8 +35,8 @@ export function PaymentSchedule({
 
   return (
     <>
-      <PaymentScheduleMobile payments={payments} {...actionProps} />
-      <PaymentScheduleDesktop payments={payments} {...actionProps} />
+      <PaymentScheduleMobile payments={payments} startDate={startDate} {...actionProps} />
+      <PaymentScheduleDesktop payments={payments} startDate={startDate} {...actionProps} />
     </>
   );
 }

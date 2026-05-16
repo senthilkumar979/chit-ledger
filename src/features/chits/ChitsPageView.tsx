@@ -5,10 +5,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Landmark, Plus } from 'lucide-react';
 import { fetchChits, createChit } from '@/services/chits';
+import { useCatalogViewMode } from '@/hooks/useCatalogViewMode';
 import { ChitsHero } from './ChitsHero';
 import { ChitsToolbar } from './ChitsToolbar';
 import { ChitCard } from './ChitCard';
 import { ChitCardSkeleton } from './ChitCardSkeleton';
+import { ChitsTable } from './ChitsTable';
+import { ChitsTableSkeleton } from './ChitsTableSkeleton';
 import { ChitForm } from './ChitForm';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -36,8 +39,8 @@ export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<ChitStatusFilter>('all');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [showForm, setShowForm] = useState(false);
+  const { view, setView, isReady } = useCatalogViewMode();
 
   const { data, isLoading } = useQuery({
     queryKey: ['chits', search],
@@ -70,6 +73,10 @@ export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
     router.push(`/chits/${chit.id}`);
   }
 
+  const emptyMessage = search || typeFilter || statusFilter !== 'all'
+    ? 'No chits match the current filters.'
+    : 'No chits yet.';
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <ChitsHero {...stats} />
@@ -87,18 +94,16 @@ export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
         onAdd={() => setShowForm(true)}
       />
 
-      {isLoading ? (
-        <div className={cn('grid gap-4', view === 'grid' ? 'sm:grid-cols-2 xl:grid-cols-3' : '')}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <ChitCardSkeleton key={i} />
-          ))}
-        </div>
+      {!isReady || isLoading ? (
+        <ChitsLoading view={view} />
       ) : !filtered.length ? (
         <EmptyChits
           canWrite={canWrite}
           hasFilters={Boolean(search || typeFilter || statusFilter !== 'all')}
           onAdd={() => setShowForm(true)}
         />
+      ) : view === 'table' ? (
+        <ChitsTable chits={filtered} emptyMessage={emptyMessage} />
       ) : (
         <div
           className={cn(
@@ -117,6 +122,18 @@ export function ChitsPageView({ canWrite }: ChitsPageViewProps) {
         </p>
         <ChitForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />
       </Modal>
+    </div>
+  );
+}
+
+function ChitsLoading({ view }: { view: 'grid' | 'list' | 'table' }) {
+  if (view === 'table') return <ChitsTableSkeleton />;
+
+  return (
+    <div className={cn('grid gap-4', view === 'grid' ? 'sm:grid-cols-2 xl:grid-cols-3' : '')}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <ChitCardSkeleton key={i} />
+      ))}
     </div>
   );
 }
@@ -141,7 +158,7 @@ function EmptyChits({
       <p className="mt-2 max-w-sm text-sm text-muted">
         {hasFilters
           ? 'Adjust type or status filters, or clear your search.'
-          : 'Link a member to a ₹1L or ₹2L scheme with automatic installment schedules.'}
+          : 'Link a member to a scheme with automatic installment schedules.'}
       </p>
       {canWrite && !hasFilters ? (
         <Button variant="accent" className="mt-6 shadow-md shadow-accent/20" onClick={onAdd}>

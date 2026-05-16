@@ -5,6 +5,8 @@ import { ArrowUpRight, Calendar, Landmark, MapPin } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels'
 import { INSTALLMENT_COUNT } from '@/constants/chit-config'
+import { ChitStatusPill } from './ChitStatusPill'
+import { countPaidInstallments, getChitLifecycleStatus } from './chit-status'
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar'
 import type { Chit } from '@/types/database'
 
@@ -19,7 +21,8 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
   const initials = getInitials(personName)
   const avatarGradient = getAvatarGradient(personName)
   const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary'
-  const paidCount = chit.payments?.filter((p) => p.status === 'paid').length ?? 0
+  const paidCount = countPaidInstallments(chit)
+  const lifecycle = getChitLifecycleStatus(chit)
 
   return (
     <Link
@@ -100,14 +103,8 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
               <Calendar className="h-3 w-3" />
               {chit.start_date ? formatDate(chit.start_date) : 'No start date'}
             </span>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <StatusPill
-                label={chit.matured ? 'Matured' : 'Active'}
-                variant={chit.matured ? 'info' : 'success'}
-              />
-              {chit.withdrawal ? (
-                <StatusPill label="Withdrawn" variant="danger" />
-              ) : null}
+            <div className="flex flex-wrap gap-1.5">
+              <ChitStatusPill label={lifecycle.label} variant={lifecycle.variant} />
             </div>
           </div>
         </div>
@@ -116,28 +113,3 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
   )
 }
 
-function StatusPill({
-  label,
-  variant,
-}: {
-  label: string
-  variant: 'default' | 'success' | 'info' | 'warning' | 'danger'
-}) {
-  const styles = {
-    default: 'bg-surface text-primary',
-    success: 'bg-accent/10 text-accent',
-    info: 'bg-info/10 text-info',
-    warning: 'bg-warning/10 text-warning',
-    danger: 'bg-danger/10 text-danger',
-  } as const
-  return (
-    <span
-      className={cn(
-        'rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-        styles[variant],
-      )}
-    >
-      {label}
-    </span>
-  )
-}

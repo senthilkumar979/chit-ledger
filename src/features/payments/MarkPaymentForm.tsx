@@ -1,11 +1,13 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { markPaymentSchema, type MarkPaymentFormData } from '@/schemas/payment';
 import { PaymentModes, paymentModeOptions } from '@/constants/payment-modes';
+import { paidToRecipientOptions } from '@/constants/paid-to-recipients';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SelectWithCustom } from '@/components/ui/SelectWithCustom';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import type { Payment } from '@/types/database';
@@ -27,6 +29,7 @@ export function MarkPaymentForm({
   const collected = Number(payment.advance_amount_paid ?? expected);
   const {
     register,
+    control,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
@@ -80,10 +83,21 @@ export function MarkPaymentForm({
         error={errors.payment_mode?.message}
         {...register('payment_mode')}
       />
-      <Input
-        label="Paid to"
-        error={errors.paid_to?.message}
-        {...register('paid_to')}
+      <Controller
+        name="paid_to"
+        control={control}
+        render={({ field }) => (
+          <SelectWithCustom
+            label="Paid to"
+            options={paidToRecipientOptions}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={errors.paid_to?.message}
+            placeholder="Select recipient"
+            customInputPlaceholder="Enter recipient name"
+          />
+        )}
       />
       <div className="flex gap-3">
         <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>

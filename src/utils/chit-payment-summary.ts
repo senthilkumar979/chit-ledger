@@ -1,4 +1,9 @@
-import type { Payment } from '@/types/database';
+import type { Chit, Payment } from '@/types/database';
+
+export type ChitWithdrawalSnapshot = Pick<
+  Chit,
+  'withdrawal' | 'withdrawal_net_amount' | 'collection_variance'
+>;
 
 export function getRecordedAmount(payment: Payment): number {
   const amount = payment.amount_paid != null ? Number(payment.amount_paid) : null;
@@ -47,6 +52,8 @@ export interface ChitPaymentSummary {
   maturityInstallmentNo: number | null;
   maturityBase: number;
   netMaturityPayout: number;
+  /** True when net payout comes from a recorded withdrawal, not the live ladder. */
+  usesRecordedWithdrawal: boolean;
 }
 
 export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
@@ -98,5 +105,38 @@ export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
     maturityInstallmentNo,
     maturityBase,
     netMaturityPayout,
+    usesRecordedWithdrawal: false,
+  };
+}
+
+/** Applies stored withdrawal payout when the chit has been withdrawn. */
+export function resolveChitPaymentSummary(
+  payments: Payment[],
+  chit?: ChitWithdrawalSnapshot | null,
+): ChitPaymentSummary {
+  const summary = summarizeChitPayments(payments);
+
+  if (!chit?.withdrawal) return summary;
+
+  const netMaturityPayout =
+    chit.withdrawal_net_amount != null
+      ? Number(chit.withdrawal_net_amount)
+      : summary.netMaturityPayout;
+  const collectionVariance =
+    chit.collection_variance != null
+      ? Number(chit.collection_variance)
+      : summary.collectionVariance;
+
+  const varianceLabel: CollectionVarianceLabel =
+    collectionVariance > 0 ? 'Extra paid' : collectionVariance < 0 ? 'Shortfall' : 'Balanced';
+
+  return {
+    ...summary,
+    maturityInstallmentNo: null,
+    maturityBase: netMaturityPayout - collectionVariance,
+    collectionVariance,
+    varianceLabel,
+    netMaturityPayout,
+    usesRecordedWithdrawal: true,
   };
 }

@@ -28,7 +28,7 @@ import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/pay
 import { getUnpaidInstallments, previewBulkPayment } from '@/utils/bulk-payment'
 import { INSTALLMENT_COUNT } from '../../constants/chit-config'
 import { invalidateChitQueries as invalidateChitRelatedQueries } from '@/lib/invalidate-chit-queries'
-import { summarizeChitPayments } from '@/utils/chit-payment-summary'
+import { resolveChitPaymentSummary } from '@/utils/chit-payment-summary'
 
 interface ChitDetailViewProps {
   chitId: string
@@ -113,7 +113,7 @@ export function ChitDetailView({
 
   const paidCount = chit.payments.filter((p) => p.status === 'paid').length
   const unpaidCount = getUnpaidInstallments(chit.payments).length
-  const paymentSummary = summarizeChitPayments(chit.payments)
+  const paymentSummary = resolveChitPaymentSummary(chit.payments, chit)
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -140,7 +140,7 @@ export function ChitDetailView({
           </div>
         }
       />
-      <ChitDetailStats payments={chit.payments} />
+      <ChitDetailStats payments={chit.payments} chit={chit} />
 
       <div className="rounded-2xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">

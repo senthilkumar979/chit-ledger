@@ -2,7 +2,11 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { INSTALLMENT_COUNT } from '@/constants/chit-config';
 import type { ChitWithPayments } from '@/types/database';
-import { summarizeChitPayments, getRecordedAmount, getInstallmentVariance } from '@/utils/chit-payment-summary';
+import {
+  resolveChitPaymentSummary,
+  getRecordedAmount,
+  getInstallmentVariance,
+} from '@/utils/chit-payment-summary';
 import { paymentStatusLabel } from '@/utils/payment-status';
 import {
   formatPdfCurrency,
@@ -20,7 +24,7 @@ const PAGE_W = 210;
 
 export function exportChitToPdf(chit: ChitWithPayments): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const summary = summarizeChitPayments(chit.payments);
+  const summary = resolveChitPaymentSummary(chit.payments, chit);
   const personName = sanitizePdfText(chit.person?.name ?? 'Member');
   const schemeLabel = pdfChitTypeLabel(chit.type);
   const generatedAt = sanitizePdfText(
@@ -119,7 +123,7 @@ function drawInfoColumns(doc: jsPDF, chit: ChitWithPayments, startY: number): nu
 
 function drawSummaryBand(
   doc: jsPDF,
-  summary: ReturnType<typeof summarizeChitPayments>,
+  summary: ReturnType<typeof resolveChitPaymentSummary>,
   startY: number,
 ): number {
   let y = startY + 4;
@@ -247,7 +251,7 @@ function drawScheduleTable(doc: jsPDF, chit: ChitWithPayments, startY: number): 
 function drawMaturitySection(
   doc: jsPDF,
   chit: ChitWithPayments,
-  summary: ReturnType<typeof summarizeChitPayments>,
+  summary: ReturnType<typeof resolveChitPaymentSummary>,
   startY: number,
 ): number {
   let y = startY + 8;

@@ -4,7 +4,7 @@ import { Wallet } from 'lucide-react'
 import { ProgressRing } from './ProgressRing'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/lib/utils'
-import { summarizeChitPayments } from '@/utils/chit-payment-summary'
+import { resolveChitPaymentSummary } from '@/utils/chit-payment-summary'
 import { getChitWithdrawalEligibility } from './chit-status'
 import type { ChitWithPayments } from '@/types/database'
 
@@ -21,7 +21,7 @@ export function ChitDetailHeroProgressPanel({
   showWithdrawalCta,
   onRecordWithdrawal,
 }: ChitDetailHeroProgressPanelProps) {
-  const summary = summarizeChitPayments(chit.payments)
+  const summary = resolveChitPaymentSummary(chit.payments, chit)
   const withdrawal = getChitWithdrawalEligibility(chit.payments, chit)
 
   return (
@@ -62,14 +62,17 @@ export function ChitDetailHeroProgressPanel({
           ) : null}
         </div>
       ) : null}
-      {!chit.withdrawal &&
-      (summary.paidInstallmentCount > 0 || summary.partialCount > 0) ? (
+      {chit.withdrawal ||
+      summary.paidInstallmentCount > 0 ||
+      summary.partialCount > 0 ? (
         <div className="rounded-lg border border-accent/20 bg-accent/5 px-3 py-2 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Net payout</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            {summary.usesRecordedWithdrawal ? 'Withdrawal paid' : 'Net payout'}
+          </p>
           <p className="mt-0.5 text-sm font-bold tabular-nums text-accent">
             {formatCurrency(summary.netMaturityPayout)}
           </p>
-          {summary.collectionVariance !== 0 ? (
+          {!summary.usesRecordedWithdrawal && summary.collectionVariance !== 0 ? (
             <p className="mt-1 text-[10px] text-muted">
               {summary.varianceLabel}:{' '}
               {summary.collectionVariance > 0 ? '+' : '−'}

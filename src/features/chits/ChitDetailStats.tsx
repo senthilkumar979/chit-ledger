@@ -10,16 +10,17 @@ import {
   Wallet,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { summarizeChitPayments } from '@/utils/chit-payment-summary';
-import type { Payment } from '@/types/database';
+import { resolveChitPaymentSummary } from '@/utils/chit-payment-summary';
+import type { Chit, Payment } from '@/types/database';
 import type { LucideIcon } from 'lucide-react';
 
 interface ChitDetailStatsProps {
   payments: Payment[];
+  chit: Pick<Chit, 'withdrawal' | 'withdrawal_net_amount' | 'collection_variance'>;
 }
 
-export function ChitDetailStats({ payments }: ChitDetailStatsProps) {
-  const summary = summarizeChitPayments(payments);
+export function ChitDetailStats({ payments, chit }: ChitDetailStatsProps) {
+  const summary = resolveChitPaymentSummary(payments, chit);
   const { collectionVariance, varianceLabel } = summary;
   const varianceTone =
     collectionVariance > 0 ? 'accent' : collectionVariance < 0 ? 'warning' : 'default';
@@ -55,7 +56,7 @@ export function ChitDetailStats({ payments }: ChitDetailStatsProps) {
       tone: varianceTone,
     },
     {
-      label: 'Net maturity',
+      label: summary.usesRecordedWithdrawal ? 'Withdrawal paid' : 'Net maturity',
       value: formatCurrency(summary.netMaturityPayout),
       icon: Wallet,
       tone: 'accent',

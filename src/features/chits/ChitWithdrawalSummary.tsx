@@ -2,7 +2,7 @@
 
 import { formatCurrency } from '@/lib/utils';
 import { MaturityPayoutBreakdown } from '@/components/payments/MaturityPayoutBreakdown';
-import { summarizeChitPayments } from '@/utils/chit-payment-summary';
+import { resolveChitPaymentSummary } from '@/utils/chit-payment-summary';
 import type { Chit, Payment } from '@/types/database';
 
 interface ChitWithdrawalSummaryProps {
@@ -11,28 +11,19 @@ interface ChitWithdrawalSummaryProps {
 }
 
 export function ChitWithdrawalSummary({ chit, payments }: ChitWithdrawalSummaryProps) {
-  const summary = summarizeChitPayments(payments);
-  const netAmount = chit.withdrawal_net_amount ?? summary.netMaturityPayout;
-  const variance = chit.collection_variance ?? summary.collectionVariance;
+  const summary = resolveChitPaymentSummary(payments, chit);
 
   return (
     <div className="space-y-4 rounded-2xl border border-info/20 bg-info/5 p-4 sm:p-6">
       <div>
         <h3 className="font-semibold text-info">Withdrawal recorded</h3>
         <p className="mt-1 text-2xl font-bold tabular-nums text-primary sm:text-3xl">
-          {formatCurrency(Number(netAmount))}
+          {formatCurrency(summary.netMaturityPayout)}
         </p>
         <p className="mt-0.5 text-xs text-muted">Net maturity paid to member</p>
       </div>
 
-      <MaturityPayoutBreakdown
-        summary={{
-          ...summary,
-          collectionVariance: Number(variance),
-          netMaturityPayout: Number(netAmount),
-        }}
-        compact
-      />
+      <MaturityPayoutBreakdown summary={summary} compact />
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>

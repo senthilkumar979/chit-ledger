@@ -15,6 +15,7 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
     collectionVariance,
     netMaturityPayout,
     varianceLabel,
+    usesRecordedWithdrawal,
   } = summary;
   const adjustmentTone =
     collectionVariance > 0 ? 'text-accent' : collectionVariance < 0 ? 'text-warning' : 'text-muted';
@@ -34,8 +35,8 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
             : 'font-semibold text-primary'
         }
       >
-        Maturity payout
-        {maturityInstallmentNo != null ? (
+        {usesRecordedWithdrawal ? 'Withdrawal payout' : 'Maturity payout'}
+        {!usesRecordedWithdrawal && maturityInstallmentNo != null ? (
           <span className="ml-1 font-normal normal-case tracking-normal text-muted">
             · installment #{maturityInstallmentNo}
           </span>
@@ -44,9 +45,11 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
       <dl className="space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">
-            {maturityInstallmentNo != null
-              ? `Month ${maturityInstallmentNo} maturity`
-              : 'Base maturity'}
+            {usesRecordedWithdrawal
+              ? 'Withdrawal amount'
+              : maturityInstallmentNo != null
+                ? `Month ${maturityInstallmentNo} maturity`
+                : 'Base maturity'}
           </dt>
           <dd className="font-semibold tabular-nums text-primary">{formatCurrency(maturityBase)}</dd>
         </div>
@@ -67,8 +70,9 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
       </dl>
       {!compact ? (
         <p className="text-xs leading-relaxed text-muted">
-          Uses the maturity ladder value for the latest recorded installment, adjusted by collection
-          variance across all recorded payments.
+          {usesRecordedWithdrawal
+            ? 'Amount paid to the member when withdrawal was recorded.'
+            : 'Uses the maturity ladder value for the latest recorded installment, adjusted by collection variance across all recorded payments.'}
         </p>
       ) : null}
     </div>

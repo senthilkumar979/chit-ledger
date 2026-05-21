@@ -1,7 +1,8 @@
 export const PaidToRecipients = {
-  OFFICE: 'Office',
-  FIELD_AGENT: 'Field agent',
-  BANK: 'Bank deposit',
+  SEKAR: 'Sekar',
+  AKILA: 'Akila',
+  JEEVA: 'Jeeva',
+  RAMASAMY: 'Ramasamy',
 } as const;
 
 export const paidToRecipientOptions = Object.values(PaidToRecipients).map((value) => ({

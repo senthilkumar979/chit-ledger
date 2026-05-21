@@ -25,18 +25,42 @@ export async function recordWithdrawal(
     proofUrl = urlData.publicUrl;
   }
 
+  const baseUpdate = {
+    withdrawal: true,
+    withdrawal_date: input.withdrawal_date,
+    withdrawal_by: input.withdrawal_by,
+    withdrawal_payment_mode: input.withdrawal_payment_mode,
+    withdrawal_proof_url: proofUrl,
+  };
+
+  const payoutUpdate =
+    payout != null
+      ? {
+          collection_variance: payout.collectionVariance,
+          withdrawal_net_amount: payout.withdrawalNetAmount,
+        }
+      : null;
+
   const { error } = await supabase
     .from('chits')
-    .update({
-      withdrawal: true,
-      withdrawal_date: input.withdrawal_date,
-      withdrawal_by: input.withdrawal_by,
-      withdrawal_payment_mode: input.withdrawal_payment_mode,
-      withdrawal_proof_url: proofUrl,
-      collection_variance: payout?.collectionVariance ?? null,
-      withdrawal_net_amount: payout?.withdrawalNetAmount ?? null,
-    })
+    .update(payoutUpdate ? { ...baseUpdate, ...payoutUpdate } : baseUpdate)
     .eq('id', chitId);
 
+  if (error && payoutUpdate && isMissingPayoutColumnError(error.message)) {
+    const { error: retryError } = await supabase
+      .from('chits')
+      .update(baseUpdate)
+      .eq('id', chitId);
+    if (retryError) throw new Error(retryError.message);
+    return;
+  }
+
   if (error) throw new Error(error.message);
+}
+
+function isMissingPayoutColumnError(message: string): boolean {
+  return (
+    message.includes('collection_variance') ||
+    message.includes('withdrawal_net_amount')
+  );
 }

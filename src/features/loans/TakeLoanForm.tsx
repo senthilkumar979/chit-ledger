@@ -2,11 +2,14 @@
 
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { takeLoanSchema, type TakeLoanFormData } from '@/schemas/loan';
 import { DEFAULT_LOAN_INTEREST_RATE } from '@/constants/loans';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
+import { fetchPersons } from '@/services/persons';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 
 interface TakeLoanFormProps {
@@ -15,6 +18,14 @@ interface TakeLoanFormProps {
 }
 
 export function TakeLoanForm({ onSubmit, onCancel }: TakeLoanFormProps) {
+  const { data: persons } = useQuery({
+    queryKey: ['persons'],
+    queryFn: () => fetchPersons(),
+  });
+
+  const personOptions =
+    persons?.map((p) => ({ value: p.id, label: `${p.name} · ${p.city}` })) ?? [];
+
   const {
     register,
     control,
@@ -24,6 +35,7 @@ export function TakeLoanForm({ onSubmit, onCancel }: TakeLoanFormProps) {
   } = useForm<TakeLoanFormData>({
     resolver: zodResolver(takeLoanSchema),
     defaultValues: {
+      loan_from_person_id: '',
       principal: undefined,
       interest_rate: DEFAULT_LOAN_INTEREST_RATE,
       start_date: new Date().toISOString().slice(0, 10),
@@ -35,6 +47,14 @@ export function TakeLoanForm({ onSubmit, onCancel }: TakeLoanFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <Select
+        label="Loan from person"
+        options={personOptions}
+        placeholder={persons ? 'Select person' : 'Loading persons…'}
+        disabled={!persons?.length}
+        error={errors.loan_from_person_id?.message}
+        {...register('loan_from_person_id')}
+      />
       <Controller
         name="principal"
         control={control}

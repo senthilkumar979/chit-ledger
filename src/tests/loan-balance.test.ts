@@ -4,6 +4,7 @@ import type { Loan, LoanRepayment } from '@/types/database';
 
 const baseLoan: Loan = {
   id: 'loan-1',
+  loan_from_person_id: null,
   principal: 100_000,
   interest_rate: 0.01,
   interest_amount: null,

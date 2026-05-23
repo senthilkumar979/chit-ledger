@@ -63,6 +63,7 @@ export type LoanStatus = 'active' | 'closed';
 
 export interface Loan {
   id: string;
+  loan_from_person_id: string | null;
   principal: number;
   interest_rate: number;
   interest_amount: number | null;
@@ -73,6 +74,7 @@ export interface Loan {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  loan_from?: Person | null;
 }
 
 export interface LoanRepayment {

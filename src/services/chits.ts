@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Chit, ChitWithPayments } from '@/types/database';
 import type { ChitFormData } from '@/schemas/chit';
+import { chitToDuplicateFormData } from '@/utils/chit-duplicate';
 import { chitEndDateFromStart } from '@/utils/installment-due';
 
 export async function fetchChitsByPerson(personId: string): Promise<Chit[]> {
@@ -70,6 +71,12 @@ export async function createChit(input: ChitFormData): Promise<Chit> {
 
   if (error) throw new Error(error.message);
   return data as Chit;
+}
+
+export async function duplicateChit(
+  source: Pick<Chit, 'person_id' | 'type' | 'category' | 'start_date' | 'end_date'>,
+): Promise<Chit> {
+  return createChit(chitToDuplicateFormData(source));
 }
 
 export async function updateChit(id: string, input: ChitFormData): Promise<Chit> {

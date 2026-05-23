@@ -33,6 +33,7 @@ export function LoansTable({ loans, canManage, onDelete, emptyMessage }: LoansTa
           <thead className="bg-surface/80 text-[10px] font-semibold uppercase tracking-wider text-muted">
             <tr>
               <th className="px-4 py-3">Started</th>
+              <th className="px-4 py-3">Loan from</th>
               <th className="px-4 py-3">Principal</th>
               <th className="px-4 py-3">Rate</th>
               <th className="px-4 py-3">Interest</th>
@@ -50,6 +51,9 @@ export function LoansTable({ loans, canManage, onDelete, emptyMessage }: LoansTa
                 onClick={() => openLoan(loan.id)}
               >
                 <td className="px-4 py-3 text-muted">{formatDate(loan.start_date)}</td>
+                <td className="px-4 py-3 text-primary">
+                  {loan.loan_from ? `${loan.loan_from.name} · ${loan.loan_from.city}` : '—'}
+                </td>
                 <td className="px-4 py-3 font-medium tabular-nums text-primary">
                   {formatCurrency(loan.principal)}
                 </td>
@@ -98,6 +102,9 @@ export function LoansTable({ loans, canManage, onDelete, emptyMessage }: LoansTa
                 <div>
                   <p className="font-semibold tabular-nums text-primary">
                     {formatCurrency(loan.principal)}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {loan.loan_from ? `${loan.loan_from.name} · ${loan.loan_from.city}` : '—'}
                   </p>
                   <p className="text-xs text-muted">
                     {formatDate(loan.start_date)}

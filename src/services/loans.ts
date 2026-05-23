@@ -31,7 +31,7 @@ export async function fetchLoans(): Promise<Loan[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('loans')
-    .select('*')
+    .select('*, loan_from:persons(id, name, city)')
     .order('start_date', { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -40,7 +40,11 @@ export async function fetchLoans(): Promise<Loan[]> {
 
 export async function fetchLoan(id: string): Promise<Loan> {
   const supabase = createClient();
-  const { data, error } = await supabase.from('loans').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('loans')
+    .select('*, loan_from:persons(id, name, city)')
+    .eq('id', id)
+    .single();
 
   if (error) throw new Error(error.message);
   return mapLoan(data as Loan);
@@ -49,7 +53,11 @@ export async function fetchLoan(id: string): Promise<Loan> {
 export async function fetchLoanWithRepayments(id: string): Promise<LoanWithRepayments> {
   const supabase = createClient();
   const [loanRes, repayRes] = await Promise.all([
-    supabase.from('loans').select('*').eq('id', id).single(),
+    supabase
+      .from('loans')
+      .select('*, loan_from:persons(id, name, city)')
+      .eq('id', id)
+      .single(),
     supabase
       .from('loan_repayments')
       .select('*')
@@ -71,13 +79,14 @@ export async function createLoan(form: TakeLoanFormData): Promise<Loan> {
   const { data, error } = await supabase
     .from('loans')
     .insert({
+      loan_from_person_id: form.loan_from_person_id,
       principal: form.principal,
       interest_rate: form.interest_rate,
       start_date: form.start_date,
       notes: form.notes?.trim() || null,
       status: LoanStatuses.ACTIVE,
     })
-    .select()
+    .select('*, loan_from:persons(id, name, city)')
     .single();
 
   if (error) throw new Error(error.message);

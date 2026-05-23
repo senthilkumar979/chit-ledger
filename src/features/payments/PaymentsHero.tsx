@@ -7,23 +7,28 @@ interface PaymentsHeroProps {
   total: number;
   paid: number;
   pending: number;
+  partial: number;
   overdue: number;
   collectedAmount: number;
+  monthLabel: string;
 }
 
 export function PaymentsHero({
   total,
   paid,
   pending,
+  partial,
   overdue,
   collectedAmount,
+  monthLabel,
 }: PaymentsHeroProps) {
   const stats = [
-    { label: 'Installments', value: String(total), icon: CreditCard },
+    { label: 'Due in month', value: String(total), icon: CreditCard },
     { label: 'Paid', value: String(paid), icon: CheckCircle2 },
     { label: 'Pending', value: String(pending), icon: Clock },
+    { label: 'Partial', value: String(partial), icon: Clock },
     { label: 'Overdue', value: String(overdue), icon: AlertCircle },
-    { label: 'Collected', value: formatCurrency(collectedAmount), icon: CreditCard },
+    { label: 'Recorded', value: formatCurrency(collectedAmount), icon: CreditCard },
   ];
 
   return (
@@ -33,9 +38,9 @@ export function PaymentsHero({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">Collections</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Payments</h1>
         <p className="mt-2 max-w-lg text-sm text-white/70">
-          Track installments across all chits. Record, edit, or reset payments from the chit ledger.
+          Summary for installments due in {monthLabel}. List filters below narrow the rows shown.
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {stats.map(({ label, value, icon: Icon }) => (
             <div
               key={label}

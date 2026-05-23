@@ -6,6 +6,7 @@ export const MemberCities = [
   'Coimbatore',
   'Madurai',
   'Sivakasi',
+  'Trichy',
 ] as const;
 
 export type MemberCity = (typeof MemberCities)[number];

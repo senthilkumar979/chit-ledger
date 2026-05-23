@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import type { Payment, PaymentStatus } from '@/types/database';
 import { getInstallmentDueDate, isInstallmentDueInMonth } from '@/utils/installment-due';
+import { getRecordedAmount, hasRecordedPayment } from '@/utils/chit-payment-summary';
 
 export type PaymentWithChit = Payment & {
   chit?: {
@@ -105,6 +106,30 @@ export function sortPaymentsByStatus(payments: PaymentWithChit[]): PaymentWithCh
     if (statusDiff !== 0) return statusDiff;
     return a.installment_no - b.installment_no;
   });
+}
+
+export interface PaymentsMonthStats {
+  total: number;
+  paid: number;
+  pending: number;
+  partial: number;
+  overdue: number;
+  collectedAmount: number;
+}
+
+/** Counts for installments due in the selected month (ignores list sub-filters). */
+export function computePaymentsMonthStats(payments: PaymentWithChit[]): PaymentsMonthStats {
+  return {
+    total: payments.length,
+    paid: payments.filter((p) => p.status === 'paid').length,
+    pending: payments.filter((p) => p.status === 'pending').length,
+    partial: payments.filter((p) => p.status === 'partial').length,
+    overdue: payments.filter((p) => p.status === 'overdue').length,
+    collectedAmount: payments.reduce(
+      (sum, p) => sum + (hasRecordedPayment(p) ? getRecordedAmount(p) : 0),
+      0,
+    ),
+  };
 }
 
 export function buildMonthOptions(payments: PaymentWithChit[]): { value: string; label: string }[] {

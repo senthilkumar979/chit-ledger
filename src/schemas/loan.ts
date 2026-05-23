@@ -6,6 +6,7 @@ const positiveAmount = z
   .positive('Amount must be greater than zero');
 
 export const takeLoanSchema = z.object({
+  loan_from_person_id: z.string().uuid('Select who the loan is from'),
   principal: positiveAmount,
   interest_rate: z
     .number()

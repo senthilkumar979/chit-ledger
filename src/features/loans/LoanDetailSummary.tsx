@@ -26,6 +26,14 @@ export function LoanDetailSummary({ loan }: LoanDetailSummaryProps) {
       <Stat label="Principal repaid" value={formatCurrency(balance.principalRepaid)} />
       <Stat label="Interest paid" value={formatCurrency(balance.interestPaidToDate)} />
       <Stat label="Total repaid" value={formatCurrency(balance.totalRepaidToDate)} />
+      <Stat
+        label="Loan from"
+        value={
+          loan.loan_from
+            ? `${loan.loan_from.name} · ${loan.loan_from.city}`
+            : '—'
+        }
+      />
       <Stat label="Rate" value={`${rateToPercentLabel(loan.interest_rate)} / month`} />
       <Stat label="Started" value={formatDate(loan.start_date)} />
       <div className="rounded-xl border border-border/80 bg-card px-4 py-3">

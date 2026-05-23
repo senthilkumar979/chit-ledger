@@ -6,11 +6,12 @@ import type { ChitFormData } from '@/schemas/chit'
 import { deleteChit, updateChit } from '@/services/chits'
 import type { ChitWithPayments } from '@/types/database'
 import { useQueryClient } from '@tanstack/react-query'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Copy, Pencil, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChitForm } from './ChitForm'
+import { DuplicateChitModal } from './DuplicateChitModal'
 import { invalidateChitQueries } from '@/lib/invalidate-chit-queries'
 
 interface ChitDetailToolbarProps {
@@ -27,6 +28,7 @@ export function ChitDetailToolbar({
   const router = useRouter()
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
+  const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -68,15 +70,26 @@ export function ChitDetailToolbar({
       </span>
       <div className="flex flex-wrap items-center justify-between gap-2">
         {canWrite ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-            className="border-border/80 bg-card"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditOpen(true)}
+              className="border-border/80 bg-card"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDuplicateOpen(true)}
+              className="border-border/80 bg-card"
+            >
+              <Copy className="h-4 w-4" />
+              Duplicate
+            </Button>
+          </>
         ) : null}
         {canDelete ? (
           <Button
@@ -110,6 +123,18 @@ export function ChitDetailToolbar({
           onCancel={() => setEditOpen(false)}
         />
       </Modal>
+
+      <DuplicateChitModal
+        chit={chit}
+        isOpen={duplicateOpen}
+        onClose={() => setDuplicateOpen(false)}
+        onDuplicated={async (newChit) => {
+          toast.success('Chit duplicated')
+          setDuplicateOpen(false)
+          await invalidateChitQueries(queryClient, { personId: newChit.person_id })
+          router.push(`/chits/${newChit.id}`)
+        }}
+      />
 
       <Modal
         isOpen={deleteOpen}

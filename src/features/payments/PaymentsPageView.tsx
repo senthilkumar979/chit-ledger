@@ -15,6 +15,7 @@ import {
   formatMonthLabel,
   getCurrentMonthKey,
   sortPaymentsByStatus,
+  computePaymentsMonthStats,
   type PaymentStatusFilter,
   type PaymentWithChit,
 } from '@/utils/payment-month';
@@ -77,17 +78,10 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
     return sorted.filter((p) => p.chit?.person?.name?.toLowerCase().includes(q));
   }, [monthPayments, statusFilter, cityFilter, categoryFilter, search]);
 
-  const stats = useMemo(() => {
-    const list = filtered;
-    const collectedAmount = list.reduce((s, p) => s + Number(p.advance_amount_paid ?? 0), 0);
-    return {
-      total: list.length,
-      paid: list.filter((p) => p.status === 'paid').length,
-      pending: list.filter((p) => p.status === 'pending' || p.status === 'partial').length,
-      overdue: list.filter((p) => p.status === 'overdue').length,
-      collectedAmount,
-    };
-  }, [filtered]);
+  const stats = useMemo(
+    () => computePaymentsMonthStats(monthPayments),
+    [monthPayments],
+  );
 
   async function handleSubmit(form: MarkPaymentFormData) {
     if (!active) return;
@@ -116,7 +110,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <PaymentsHero {...stats} />
+      <PaymentsHero {...stats} monthLabel={monthLabel} />
       <PaymentsToolbar
         search={search}
         onSearchChange={setSearch}

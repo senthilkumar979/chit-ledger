@@ -11,14 +11,22 @@ import {
 } from './PaymentScheduleRowActions';
 import { PaymentScheduleCollectedCell } from './PaymentScheduleCollectedCell';
 
+import {
+  getPaymentScheduleDueMonthClass,
+  getPaymentScheduleRowClass,
+  isWithdrawalInstallment,
+} from './payment-schedule-style';
+
 interface PaymentScheduleDesktopProps extends Omit<PaymentScheduleRowActionsProps, 'payment' | 'layout'> {
   payments: Payment[];
   startDate: string | null;
+  withdrawalInstallmentNo: number | null;
 }
 
 export function PaymentScheduleDesktop({
   payments,
   startDate,
+  withdrawalInstallmentNo,
   canWrite,
   confirmReset,
   onConfirmReset,
@@ -45,6 +53,7 @@ export function PaymentScheduleDesktop({
           key={p.id}
           payment={p}
           startDate={startDate}
+          withdrawalInstallmentNo={withdrawalInstallmentNo}
           index={i}
           canWrite={canWrite}
           confirmReset={confirmReset}
@@ -61,6 +70,7 @@ export function PaymentScheduleDesktop({
 function DesktopRow({
   payment: p,
   startDate,
+  withdrawalInstallmentNo,
   index,
   canWrite,
   confirmReset,
@@ -68,22 +78,35 @@ function DesktopRow({
   onMarkPaid,
   onEdit,
   onReset,
-}: PaymentScheduleRowActionsProps & { startDate: string | null; index: number }) {
+}: PaymentScheduleRowActionsProps & {
+  startDate: string | null;
+  withdrawalInstallmentNo: number | null;
+  index: number;
+}) {
   const variant = paymentStatusVariant(p.status);
   const isPaid = p.status === 'paid' || p.status === 'partial';
+  const isWithdrawnMonth = isWithdrawalInstallment(p.installment_no, withdrawalInstallmentNo);
 
   return (
     <div
       className={cn(
         'member-card-enter grid grid-cols-10 items-center gap-2 rounded-xl border p-4 transition-all',
-        isPaid ? 'border-accent/25 bg-accent/[0.04]' : 'border-border/80 bg-card hover:border-accent/20',
+        getPaymentScheduleRowClass(isWithdrawnMonth, isPaid),
       )}
       style={{ animationDelay: `${index * 25}ms` }}
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-sm font-bold text-primary">
+      <span
+        className={cn(
+          'flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold',
+          isWithdrawnMonth ? 'bg-danger/10 text-danger' : 'bg-primary/5 text-primary',
+        )}
+      >
         {p.installment_no}
       </span>
-      <Cell value={formatInstallmentDueMonth(startDate, p.installment_no)} />
+      <Cell
+        value={formatInstallmentDueMonth(startDate, p.installment_no)}
+        className={getPaymentScheduleDueMonthClass(isWithdrawnMonth)}
+      />
       <Cell value={formatCurrency(Number(p.expected_amount))} />
       <Cell value={formatCurrency(Number(p.maturity_amount))} />
       <PaymentScheduleCollectedCell payment={p} />
@@ -108,6 +131,8 @@ function DesktopRow({
   );
 }
 
-function Cell({ value }: { value: string }) {
-  return <p className="py-1 text-sm font-medium tabular-nums text-primary">{value}</p>;
+function Cell({ value, className }: { value: string; className?: string }) {
+  return (
+    <p className={cn('py-1 text-sm font-medium tabular-nums text-primary', className)}>{value}</p>
+  );
 }

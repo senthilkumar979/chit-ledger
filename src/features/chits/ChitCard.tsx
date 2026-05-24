@@ -6,7 +6,7 @@ import { cn, formatDate } from '@/lib/utils'
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels'
 import { INSTALLMENT_COUNT } from '@/constants/chit-config'
 import { ChitStatusPill } from './ChitStatusPill'
-import { countPaidInstallments, getChitLifecycleStatus } from './chit-status'
+import { countPaidInstallments, getChitLifecycleStatus, getChitWithdrawalDateLabel } from './chit-status'
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar'
 import type { Chit } from '@/types/database'
 
@@ -98,12 +98,23 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
             </span>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-[11px] text-muted">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {chit.start_date ? formatDate(chit.start_date) : 'No start date'}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="mt-3 flex items-end justify-between gap-3 text-[11px] text-muted">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 shrink-0" />
+                {chit.start_date ? formatDate(chit.start_date) : 'No start date'}
+              </span>
+              {chit.withdrawal ? (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3 shrink-0 text-danger" />
+                  <span className="text-muted">Withdrawn</span>
+                  <span className="font-semibold text-danger">
+                    {getChitWithdrawalDateLabel(chit)}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
               <ChitStatusPill label={lifecycle.label} variant={lifecycle.variant} />
             </div>
           </div>

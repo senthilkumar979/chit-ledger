@@ -1,9 +1,57 @@
 import type { Chit, Payment } from '@/types/database';
+import { getChitSchedule, type ChitType } from '@/constants/chit-config';
 
 export type ChitWithdrawalSnapshot = Pick<
   Chit,
   'withdrawal' | 'withdrawal_net_amount' | 'collection_variance'
->;
+> & {
+  type?: ChitType;
+};
+
+function amountsEqual(a: number, b: number): boolean {
+  return Math.round(a) === Math.round(b);
+}
+
+/** Maturity ladder value before collection variance (net payout − variance). */
+export function getMaturityBaseFromWithdrawal(
+  withdrawalNetAmount: number,
+  collectionVariance: number | null | undefined,
+): number {
+  if (collectionVariance != null) {
+    return Number(withdrawalNetAmount) - Number(collectionVariance);
+  }
+  return Number(withdrawalNetAmount);
+}
+
+/**
+ * Installment whose maturity amount (payments table / chit-config ladder) matches
+ * the withdrawal payout — not withdrawal_date.
+ */
+export function findWithdrawalInstallmentNo(
+  payments: Payment[],
+  withdrawalNetAmount: number | null | undefined,
+  collectionVariance: number | null | undefined,
+  chitType?: ChitType | null,
+): number | null {
+  if (withdrawalNetAmount == null) return null;
+
+  const net = Number(withdrawalNetAmount);
+  const maturityBase = getMaturityBaseFromWithdrawal(net, collectionVariance);
+
+  const fromPayments = payments.find((p) =>
+    amountsEqual(Number(p.maturity_amount), maturityBase),
+  );
+  if (fromPayments) return fromPayments.installment_no;
+
+  if (chitType) {
+    const schedule = getChitSchedule(chitType);
+    const index = schedule.maturity.findIndex((amount) => amountsEqual(amount, maturityBase));
+    if (index >= 0) return index + 1;
+  }
+
+  const fromNet = payments.find((p) => amountsEqual(Number(p.maturity_amount), net));
+  return fromNet?.installment_no ?? null;
+}
 
 export function getRecordedAmount(payment: Payment): number {
   const amount = payment.amount_paid != null ? Number(payment.amount_paid) : null;
@@ -126,14 +174,21 @@ export function resolveChitPaymentSummary(
     chit.collection_variance != null
       ? Number(chit.collection_variance)
       : summary.collectionVariance;
+  const maturityBase = netMaturityPayout - collectionVariance;
+  const withdrawalInstallmentNo = findWithdrawalInstallmentNo(
+    payments,
+    chit.withdrawal_net_amount,
+    chit.collection_variance,
+    chit.type,
+  );
 
   const varianceLabel: CollectionVarianceLabel =
     collectionVariance > 0 ? 'Extra paid' : collectionVariance < 0 ? 'Shortfall' : 'Balanced';
 
   return {
     ...summary,
-    maturityInstallmentNo: null,
-    maturityBase: netMaturityPayout - collectionVariance,
+    maturityInstallmentNo: withdrawalInstallmentNo ?? summary.maturityInstallmentNo,
+    maturityBase,
     collectionVariance,
     varianceLabel,
     netMaturityPayout,

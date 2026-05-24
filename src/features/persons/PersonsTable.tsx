@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { MapPin, StickyNote } from 'lucide-react';
 import { ActiveChitsLabel } from './ActiveChitsLabel';
+import { WithdrawnChitsLabel } from './WithdrawnChitsLabel';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import { cn } from '@/lib/utils';
 import type { PersonWithStats } from '@/services/persons';
@@ -21,13 +22,14 @@ export function PersonsTable({ persons, emptyMessage }: PersonsTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[720px] text-left text-sm">
         <thead className="border-b border-border bg-surface/60 text-[10px] font-semibold uppercase tracking-wider text-muted">
           <tr>
             <th className="px-4 py-3">Member</th>
             <th className="px-4 py-3">City</th>
             <th className="px-4 py-3">Phone</th>
             <th className="px-4 py-3">Active chits</th>
+            <th className="px-4 py-3">Withdrawn chits</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/60">
@@ -72,6 +74,13 @@ export function PersonsTable({ persons, emptyMessage }: PersonsTableProps) {
                 <td className="px-4 py-3 text-muted">{person.phone ?? '—'}</td>
                 <td className="px-4 py-3">
                   <ActiveChitsLabel count={person.activeChitCount} compact />
+                </td>
+                <td className="px-4 py-3">
+                  <WithdrawnChitsLabel
+                    withdrawn={person.withdrawnActiveChitCount ?? 0}
+                    activeTotal={person.activeChitCount ?? 0}
+                    compact
+                  />
                 </td>
               </tr>
             );

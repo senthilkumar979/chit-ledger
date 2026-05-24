@@ -1,15 +1,12 @@
 import { createClient } from '@/lib/supabase/client';
 import { supabaseRequest } from '@/lib/supabase/request';
+import { getPersonChitStats, type PersonChitStatsInput } from '@/utils/person-chit-stats';
 import type { Person } from '@/types/database';
 import type { PersonFormData } from '@/schemas/person';
 
 export interface PersonWithStats extends Person {
   activeChitCount: number;
-}
-
-interface PersonChitRow {
-  matured: boolean;
-  withdrawal: boolean;
+  withdrawnActiveChitCount: number;
 }
 
 export async function fetchPersonById(id: string): Promise<Person> {
@@ -30,7 +27,7 @@ export async function fetchPersonsWithStats(search?: string): Promise<PersonWith
     const supabase = createClient();
     let query = supabase
       .from('persons')
-      .select('*, chits(matured, withdrawal)')
+      .select('*, chits(matured, withdrawal, end_date)')
       .order('name');
 
     if (search?.trim()) {
@@ -43,9 +40,13 @@ export async function fetchPersonsWithStats(search?: string): Promise<PersonWith
     if (error) throw new Error(error.message);
 
     return (data ?? []).map((row) => {
-      const { chits, ...person } = row as Person & { chits?: PersonChitRow[] };
-      const activeChitCount = (chits ?? []).filter((c) => !c.matured && !c.withdrawal).length;
-      return { ...(person as Person), activeChitCount };
+      const { chits, ...person } = row as Person & { chits?: PersonChitStatsInput[] };
+      const stats = getPersonChitStats(chits ?? []);
+      return {
+        ...(person as Person),
+        activeChitCount: stats.activeChitCount,
+        withdrawnActiveChitCount: stats.withdrawnActiveChitCount,
+      };
     });
   });
 }

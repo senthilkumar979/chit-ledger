@@ -14,6 +14,7 @@ export function PersonsTableSkeleton() {
             <Skeleton className="h-4 w-1/6" />
             <Skeleton className="h-4 w-1/6" />
             <Skeleton className="h-4 w-1/5" />
+            <Skeleton className="h-4 w-1/5" />
           </div>
         </div>
       ))}

@@ -12,14 +12,22 @@ import { PaymentScheduleCollectedCell } from './PaymentScheduleCollectedCell';
 import { hasRecordedPayment } from '@/utils/chit-payment-summary';
 import { formatInstallmentDueMonth } from '@/utils/installment-due';
 
+import {
+  getPaymentScheduleDueMonthClass,
+  getPaymentScheduleRowClass,
+  isWithdrawalInstallment,
+} from './payment-schedule-style';
+
 interface PaymentScheduleMobileProps extends Omit<PaymentScheduleRowActionsProps, 'payment' | 'layout'> {
   payments: Payment[];
   startDate: string | null;
+  withdrawalInstallmentNo: number | null;
 }
 
 export function PaymentScheduleMobile({
   payments,
   startDate,
+  withdrawalInstallmentNo,
   canWrite,
   confirmReset,
   onConfirmReset,
@@ -38,6 +46,7 @@ export function PaymentScheduleMobile({
             key={p.id}
             payment={p}
             startDate={startDate}
+            withdrawalInstallmentNo={withdrawalInstallmentNo}
             index={i}
             canWrite={canWrite}
             confirmReset={confirmReset}
@@ -55,6 +64,7 @@ export function PaymentScheduleMobile({
 function MobileCard({
   payment: p,
   startDate,
+  withdrawalInstallmentNo,
   index,
   canWrite,
   confirmReset,
@@ -62,29 +72,45 @@ function MobileCard({
   onMarkPaid,
   onEdit,
   onReset,
-}: PaymentScheduleRowActionsProps & { startDate: string | null; index: number }) {
+}: PaymentScheduleRowActionsProps & {
+  startDate: string | null;
+  withdrawalInstallmentNo: number | null;
+  index: number;
+}) {
   const variant = paymentStatusVariant(p.status);
   const isPaid = p.status === 'paid' || p.status === 'partial';
   const hasPaymentDetails = hasRecordedPayment(p);
+  const isWithdrawnMonth = isWithdrawalInstallment(p.installment_no, withdrawalInstallmentNo);
+  const dueMonth = formatInstallmentDueMonth(startDate, p.installment_no);
 
   return (
     <article
       className={cn(
         'member-card-enter flex flex-col overflow-hidden rounded-xl border shadow-sm',
-        isPaid ? 'border-accent/30 bg-accent/[0.04]' : 'border-border/80 bg-card',
+        getPaymentScheduleRowClass(isWithdrawnMonth, isPaid),
       )}
       style={{ animationDelay: `${index * 20}ms` }}
     >
-      <header className="flex items-center gap-3 border-b border-border/60 bg-surface/40 px-4 py-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-base font-bold text-primary">
+      <header
+        className={cn(
+          'flex items-center gap-3 border-b px-4 py-3',
+          isWithdrawnMonth ? 'border-danger/25 bg-danger/[0.06]' : 'border-border/60 bg-surface/40',
+        )}
+      >
+        <span
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold',
+            isWithdrawnMonth ? 'bg-danger/10 text-danger' : 'bg-primary/8 text-primary',
+          )}
+        >
           {p.installment_no}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Installment</p>
           <p className="truncate text-sm font-semibold text-primary">
             #{p.installment_no}
-            <span className="ml-1.5 font-normal text-muted">
-              · {formatInstallmentDueMonth(startDate, p.installment_no)}
+            <span className={cn('ml-1.5 font-normal', getPaymentScheduleDueMonthClass(isWithdrawnMonth) || 'text-muted')}>
+              · {dueMonth}
             </span>
             {p.installment_no === 20 ? (
               <span className="ml-1 font-normal text-muted">· maturity</span>
@@ -99,8 +125,9 @@ function MobileCard({
       <dl className="grid grid-cols-2 gap-x-4 gap-y-5 px-4 py-4">
         <LedgerField
           label="Due month"
-          value={formatInstallmentDueMonth(startDate, p.installment_no)}
+          value={dueMonth}
           emphasize
+          valueClassName={getPaymentScheduleDueMonthClass(isWithdrawnMonth)}
         />
         <LedgerField label="Expected" value={formatCurrency(Number(p.expected_amount))} emphasize />
         <LedgerField label="Maturity" value={formatCurrency(Number(p.maturity_amount))} />
@@ -151,11 +178,13 @@ function LedgerField({
   value,
   emphasize,
   className,
+  valueClassName,
 }: {
   label: string;
   value: string;
   emphasize?: boolean;
   className?: string;
+  valueClassName?: string;
 }) {
   return (
     <div className={cn('min-w-0', className)}>
@@ -163,7 +192,8 @@ function LedgerField({
       <dd
         className={cn(
           'mt-0.5 truncate text-sm tabular-nums',
-          emphasize ? 'font-semibold text-primary' : 'font-medium text-primary/90',
+          valueClassName,
+          !valueClassName && (emphasize ? 'font-semibold text-primary' : 'font-medium text-primary/90'),
         )}
       >
         {value}

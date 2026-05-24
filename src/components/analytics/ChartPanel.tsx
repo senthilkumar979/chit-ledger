@@ -1,17 +1,17 @@
-'use client';
+'use client'
 
-import { Card, CardHeader } from '@/components/ui/Card';
-import { cn } from '@/lib/utils';
+import { Card, CardHeader } from '@/components/ui/Card'
+import { cn } from '@/lib/utils'
 
 interface ChartPanelProps {
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-  height?: string;
-  onClick?: () => void;
-  active?: boolean;
+  title: string
+  description?: string
+  action?: React.ReactNode
+  children: React.ReactNode
+  className?: string
+  height?: string
+  onClick?: () => void
+  active?: boolean
 }
 
 export function ChartPanel({
@@ -20,7 +20,7 @@ export function ChartPanel({
   action,
   children,
   className,
-  height = 'h-64',
+  height = '',
   onClick,
   active,
 }: ChartPanelProps) {
@@ -37,12 +37,12 @@ export function ChartPanel({
       <CardHeader title={title} description={description} action={action} />
       <div className={cn('w-full', height)}>{children}</div>
     </Card>
-  );
+  )
 
-  if (!onClick) return inner;
+  if (!onClick) return inner
   return (
     <div role="presentation" onClick={onClick}>
       {inner}
     </div>
-  );
+  )
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  findWithdrawalInstallmentNo,
   getInstallmentVariance,
   getRecordedAmount,
   resolveChitPaymentSummary,
   summarizeChitPayments,
 } from '@/utils/chit-payment-summary';
+import { ChitTypes } from '@/constants/chit-config';
 import type { Payment } from '@/types/database';
 
 function payment(overrides: Partial<Payment>): Payment {
@@ -87,6 +89,27 @@ describe('chit-payment-summary', () => {
     expect(summary.varianceLabel).toBe('Extra paid');
   });
 
+  it('finds withdrawal installment by matching net amount to maturity ladder', () => {
+    const payments: Payment[] = [
+      payment({
+        installment_no: 15,
+        status: 'paid',
+        amount_paid: 4750,
+        expected_amount: 4750,
+        maturity_amount: 90000,
+      }),
+      payment({
+        installment_no: 20,
+        status: 'pending',
+        maturity_amount: 95000,
+      }),
+    ];
+
+    expect(
+      findWithdrawalInstallmentNo(payments, 88500, -1500, ChitTypes.ONE_LAKH),
+    ).toBe(15);
+  });
+
   it('uses recorded withdrawal amount when chit is withdrawn', () => {
     const payments: Payment[] = [
       payment({
@@ -106,9 +129,10 @@ describe('chit-payment-summary', () => {
       withdrawal: true,
       withdrawal_net_amount: 88500,
       collection_variance: -1500,
+      type: ChitTypes.ONE_LAKH,
     });
     expect(summary.usesRecordedWithdrawal).toBe(true);
-    expect(summary.maturityInstallmentNo).toBeNull();
+    expect(summary.maturityInstallmentNo).toBe(15);
     expect(summary.netMaturityPayout).toBe(88500);
     expect(summary.collectionVariance).toBe(-1500);
     expect(summary.maturityBase).toBe(90000);

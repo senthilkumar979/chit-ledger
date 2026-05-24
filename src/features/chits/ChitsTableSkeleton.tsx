@@ -15,6 +15,7 @@ export function ChitsTableSkeleton() {
             <Skeleton className="h-4 w-1/6" />
             <Skeleton className="h-4 w-1/8" />
             <Skeleton className="h-4 w-1/8" />
+            <Skeleton className="h-4 w-1/8" />
             <Skeleton className="h-4 w-16" />
           </div>
         </div>

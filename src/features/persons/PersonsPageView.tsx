@@ -29,7 +29,7 @@ export function PersonsPageView({ canWrite }: PersonsPageViewProps) {
   const { view, setView, isReady } = usePersonsViewMode();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['persons', search],
+    queryKey: ['persons', 'stats', search],
     queryFn: () => fetchPersonsWithStats(search),
   });
 

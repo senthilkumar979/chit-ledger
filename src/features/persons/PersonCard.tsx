@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, MapPin, Phone, StickyNote } from 'lucide-react';
 import { ActiveChitsLabel } from './ActiveChitsLabel';
+import { WithdrawnChitsLabel } from './WithdrawnChitsLabel';
 import { cn } from '@/lib/utils';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import type { PersonWithStats } from '@/services/persons';
@@ -89,7 +90,14 @@ export function PersonCard({ person, index = 0, variant = 'grid' }: PersonCardPr
               variant === 'list' ? 'mt-2 sm:mt-0' : 'mt-3 border-t border-border/60 pt-3',
             )}
           >
-            <ActiveChitsLabel count={person.activeChitCount} compact={variant === 'list'} />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <ActiveChitsLabel count={person.activeChitCount} compact={variant === 'list'} />
+              <WithdrawnChitsLabel
+                withdrawn={person.withdrawnActiveChitCount ?? 0}
+                activeTotal={person.activeChitCount ?? 0}
+                compact={variant === 'list'}
+              />
+            </div>
             {hasNotes && variant === 'grid' ? (
               <span className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-[11px] text-muted">
                 <StickyNote className="h-3 w-3" />

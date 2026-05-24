@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { Landmark, Plus, ArrowUpRight } from 'lucide-react';
-import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels';
-import { cn } from '@/lib/utils';
+import { Landmark, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { PersonLinkedChitItem } from './PersonLinkedChitItem';
+import { getChitLifecycleStatus } from '@/features/chits/chit-status';
 import type { Chit } from '@/types/database';
 
 interface PersonLinkedChitsProps {
@@ -12,62 +12,102 @@ interface PersonLinkedChitsProps {
   onAddChit?: () => void;
 }
 
+function countByLifecycle(chits: Chit[], match: 'active' | 'withdrawn' | 'matured'): number {
+  return chits.filter((c) => {
+    const { label } = getChitLifecycleStatus(c);
+    if (match === 'active') return label === 'Active';
+    if (match === 'withdrawn') return label === 'Withdrawn';
+    return label === 'Matured';
+  }).length;
+}
+
 export function PersonLinkedChits({ chits, canWrite, onAddChit }: PersonLinkedChitsProps) {
+  const activeCount = countByLifecycle(chits, 'active');
+  const maturedCount = countByLifecycle(chits, 'matured');
+  const withdrawnCount = countByLifecycle(chits, 'withdrawn');
+
   return (
-    <div className="rounded-2xl border border-border/80 bg-card shadow-sm">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+    <section className="rounded-2xl border border-border/80 bg-card shadow-sm">
+      <header className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <h2 className="text-lg font-semibold text-primary">Linked chits</h2>
-          <p className="text-sm text-muted">{chits.length} scheme{chits.length !== 1 ? 's' : ''}</p>
+          <p className="mt-0.5 text-sm text-muted">Schemes and payment progress for this member</p>
         </div>
         {canWrite && onAddChit ? (
-          <button
-            type="button"
-            onClick={onAddChit}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/15"
-          >
+          <Button type="button" variant="accent" size="sm" onClick={onAddChit} className="shrink-0">
             <Plus className="h-4 w-4" />
             New chit
-          </button>
+          </Button>
         ) : null}
-      </div>
+      </header>
 
       {chits.length === 0 ? (
-        <div className="flex flex-col items-center px-6 py-12 text-center">
-          <Landmark className="mb-3 h-10 w-10 text-muted/40" />
-          <p className="text-sm text-muted">No chits linked to this member yet.</p>
-        </div>
+        <EmptyLinkedChits canWrite={canWrite} onAddChit={onAddChit} />
       ) : (
-        <ul className="divide-y divide-border">
-          {chits.map((chit) => (
-            <li key={chit.id}>
-              <Link
-                href={`/chits/${chit.id}`}
-                className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface/80"
-              >
-                <div
-                  className={cn(
-                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white',
-                    chitTypeStyles[chit.type],
-                  )}
-                >
-                  <Landmark className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-primary group-hover:text-accent">
-                    {chitTypeLabels[chit.type]} · {chit.category}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {chit.matured ? 'Matured' : 'Active'}
-                    {chit.withdrawal ? ' · Withdrawn' : ''}
-                  </p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="flex flex-wrap gap-2 border-b border-border/60 px-4 py-3 sm:px-5">
+            <PortfolioChip label="Total" value={chits.length} />
+            <PortfolioChip label="Active" value={activeCount} tone="accent" />
+            <PortfolioChip label="Matured" value={maturedCount} tone="info" />
+            <PortfolioChip label="Withdrawn" value={withdrawnCount} tone="danger" />
+          </div>
+          <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+            {chits.map((chit, index) => (
+              <PersonLinkedChitItem key={chit.id} chit={chit} index={index} />
+            ))}
+          </div>
+        </>
       )}
+    </section>
+  );
+}
+
+function PortfolioChip({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  tone?: 'default' | 'accent' | 'info' | 'danger';
+}) {
+  const toneClass = {
+    default: 'bg-surface text-primary',
+    accent: 'bg-accent/10 text-accent',
+    info: 'bg-info/10 text-info',
+    danger: 'bg-danger/10 text-danger',
+  }[tone];
+
+  return (
+    <div className={`rounded-lg px-3 py-1.5 ${toneClass}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">{label}</span>
+      <p className="text-lg font-bold tabular-nums leading-tight">{value}</p>
+    </div>
+  );
+}
+
+function EmptyLinkedChits({
+  canWrite,
+  onAddChit,
+}: {
+  canWrite: boolean;
+  onAddChit?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center px-6 py-14 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
+        <Landmark className="h-7 w-7 text-accent" />
+      </div>
+      <p className="font-medium text-primary">No chits yet</p>
+      <p className="mt-1 max-w-xs text-sm text-muted">
+        Create a scheme to start tracking installments and withdrawals.
+      </p>
+      {canWrite && onAddChit ? (
+        <Button type="button" variant="accent" size="sm" className="mt-5" onClick={onAddChit}>
+          <Plus className="h-4 w-4" />
+          Create first chit
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchChitById } from '@/services/chits'
 import {
@@ -24,7 +24,10 @@ import { Modal } from '@/components/ui/Modal'
 import { ChitDetailSkeleton } from './ChitDetailSkeleton'
 import { toast } from 'sonner'
 import type { Payment } from '@/types/database'
-import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/payment'
+import type {
+  BulkMarkPaymentFormData,
+  MarkPaymentFormData,
+} from '@/schemas/payment'
 import { getUnpaidInstallments, previewBulkPayment } from '@/utils/bulk-payment'
 import { INSTALLMENT_COUNT } from '../../constants/chit-config'
 import { invalidateChitQueries as invalidateChitRelatedQueries } from '@/lib/invalidate-chit-queries'
@@ -51,6 +54,10 @@ export function ChitDetailView({
     queryKey: ['chit', chitId],
     queryFn: () => fetchChitById(chitId),
   })
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   async function refreshChitData() {
     await invalidateChitRelatedQueries(queryClient, {
@@ -145,7 +152,9 @@ export function ChitDetailView({
       <div className="rounded-2xl border border-border/80 bg-card shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-primary">Payment schedule</h2>
+            <h2 className="text-lg font-semibold text-primary">
+              Payment schedule
+            </h2>
             <p className="mt-0.5 text-sm text-muted">
               {INSTALLMENT_COUNT} installments
             </p>
@@ -166,6 +175,13 @@ export function ChitDetailView({
           <PaymentSchedule
             payments={chit.payments}
             startDate={chit.start_date}
+            withdrawalNetAmount={
+              chit.withdrawal ? chit.withdrawal_net_amount : null
+            }
+            collectionVariance={
+              chit.withdrawal ? chit.collection_variance : null
+            }
+            chitType={chit.withdrawal ? chit.type : null}
             canWrite={canWrite}
             onMarkPaid={(p) => {
               setMode('record')
@@ -180,7 +196,7 @@ export function ChitDetailView({
         </div>
       </div>
 
-      {chit.withdrawal && chit.withdrawal_date ? (
+      {chit.withdrawal ? (
         <ChitWithdrawalSummary chit={chit} payments={chit.payments} />
       ) : null}
 

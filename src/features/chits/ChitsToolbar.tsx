@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutGrid, List, Plus, Search, Table2, X } from 'lucide-react';
+import { LayoutGrid, List, Plus, Search, SlidersHorizontal, Table2, X } from 'lucide-react';
 import type { CatalogViewMode } from '@/hooks/useCatalogViewMode';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -11,8 +11,11 @@ import type { ChitStatusFilter } from '@/constants/chit-labels';
 interface ChitsToolbarProps {
   search: string;
   onSearchChange: (v: string) => void;
-  typeFilter: string;
-  onTypeFilter: (v: string) => void;
+  chitFilter: string;
+  onChitFilter: (v: string) => void;
+  scheduleFilter: string;
+  onScheduleFilter: (v: string) => void;
+  scheduleOptions: string[];
   statusFilter: ChitStatusFilter;
   onStatusFilter: (v: ChitStatusFilter) => void;
   view: CatalogViewMode;
@@ -29,11 +32,21 @@ const statusChips: { id: ChitStatusFilter; label: string }[] = [
   { id: 'withdrawn', label: 'Withdrawn' },
 ];
 
+const chitTypeChips = [
+  { id: '', label: 'All chits' },
+  { id: ChitTypes.FIFTY_THOUSAND, label: chitTypeLabels[ChitTypes.FIFTY_THOUSAND] },
+  { id: ChitTypes.ONE_LAKH, label: chitTypeLabels[ChitTypes.ONE_LAKH] },
+  { id: ChitTypes.TWO_LAKH, label: chitTypeLabels[ChitTypes.TWO_LAKH] },
+] as const;
+
 export function ChitsToolbar({
   search,
   onSearchChange,
-  typeFilter,
-  onTypeFilter,
+  chitFilter,
+  onChitFilter,
+  scheduleFilter,
+  onScheduleFilter,
+  scheduleOptions,
   statusFilter,
   onStatusFilter,
   view,
@@ -42,7 +55,9 @@ export function ChitsToolbar({
   canWrite,
   onAdd,
 }: ChitsToolbarProps) {
-  const hasFilters = Boolean(search || typeFilter || statusFilter !== 'all');
+  const hasFilters = Boolean(
+    search || chitFilter || scheduleFilter || statusFilter !== 'all',
+  );
 
   return (
     <div className="space-y-4">
@@ -92,35 +107,62 @@ export function ChitsToolbar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip active={!typeFilter} onClick={() => onTypeFilter('')}>
-          All types
-        </Chip>
-        <Chip
-          active={typeFilter === ChitTypes.FIFTY_THOUSAND}
-          onClick={() => onTypeFilter(ChitTypes.FIFTY_THOUSAND)}
-        >
-          {chitTypeLabels[ChitTypes.FIFTY_THOUSAND]}
-        </Chip>
-        <Chip active={typeFilter === ChitTypes.ONE_LAKH} onClick={() => onTypeFilter(ChitTypes.ONE_LAKH)}>
-          {chitTypeLabels[ChitTypes.ONE_LAKH]}
-        </Chip>
-        <Chip active={typeFilter === ChitTypes.TWO_LAKH} onClick={() => onTypeFilter(ChitTypes.TWO_LAKH)}>
-          {chitTypeLabels[ChitTypes.TWO_LAKH]}
-        </Chip>
-        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+      <FilterRow label="Chit">
+        {chitTypeChips.map((chip) => (
+          <Chip key={chip.id || 'all'} active={chitFilter === chip.id} onClick={() => onChitFilter(chip.id)}>
+            {chip.label}
+          </Chip>
+        ))}
+      </FilterRow>
+
+      {scheduleOptions.length > 0 ? (
+        <FilterRow label="Schedule">
+          <Chip active={!scheduleFilter} onClick={() => onScheduleFilter('')}>
+            All schedules
+          </Chip>
+          {scheduleOptions.map((schedule) => (
+            <Chip
+              key={schedule}
+              active={scheduleFilter === schedule}
+              onClick={() => onScheduleFilter(schedule)}
+            >
+              {schedule}
+            </Chip>
+          ))}
+        </FilterRow>
+      ) : null}
+
+      <FilterRow label="Status">
         {statusChips.map((s) => (
           <Chip key={s.id} active={statusFilter === s.id} onClick={() => onStatusFilter(s.id)}>
             {s.label}
           </Chip>
         ))}
-      </div>
+      </FilterRow>
 
       <p className="text-xs text-muted">
         <span className="font-medium tabular-nums text-primary">{resultCount}</span>
         {resultCount === 1 ? ' chit' : ' chits'}
         {hasFilters ? ' · filtered' : ''}
       </p>
+    </div>
+  );
+}
+
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex min-w-[4.5rem] items-center gap-1 text-xs font-medium text-muted">
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+        {label}
+      </span>
+      {children}
     </div>
   );
 }

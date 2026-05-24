@@ -5,7 +5,7 @@ import { MapPin } from 'lucide-react';
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels';
 import { INSTALLMENT_COUNT } from '@/constants/chit-config';
 import { ChitStatusPill } from './ChitStatusPill';
-import { countPaidInstallments, getChitLifecycleStatus } from './chit-status';
+import { countPaidInstallments, getChitLifecycleStatus, getChitWithdrawalDateLabel } from './chit-status';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import { cn, formatDate } from '@/lib/utils';
 import type { Chit } from '@/types/database';
@@ -24,7 +24,7 @@ export function ChitsTable({ chits, emptyMessage }: ChitsTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-      <table className="w-full min-w-[800px] text-left text-sm">
+      <table className="w-full min-w-[920px] text-left text-sm">
         <thead className="border-b border-border bg-surface/60 text-[10px] font-semibold uppercase tracking-wider text-muted">
           <tr>
             <th className="px-4 py-3">Member</th>
@@ -32,6 +32,7 @@ export function ChitsTable({ chits, emptyMessage }: ChitsTableProps) {
             <th className="px-4 py-3">Schedule</th>
             <th className="px-4 py-3">Progress</th>
             <th className="px-4 py-3">Start</th>
+            <th className="px-4 py-3">Withdrawn</th>
             <th className="px-4 py-3">Status</th>
           </tr>
         </thead>
@@ -87,6 +88,14 @@ export function ChitsTable({ chits, emptyMessage }: ChitsTableProps) {
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {chit.start_date ? formatDate(chit.start_date) : '—'}
+                </td>
+                <td
+                  className={cn(
+                    'px-4 py-3 tabular-nums',
+                    chit.withdrawal ? 'font-medium text-danger' : 'text-muted',
+                  )}
+                >
+                  {getChitWithdrawalDateLabel(chit)}
                 </td>
                 <td className="px-4 py-3">
                   <ChitStatusPill label={status.label} variant={status.variant} />

@@ -36,7 +36,7 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
         }
       >
         {usesRecordedWithdrawal ? 'Withdrawal payout' : 'Maturity payout'}
-        {!usesRecordedWithdrawal && maturityInstallmentNo != null ? (
+        {maturityInstallmentNo != null ? (
           <span className="ml-1 font-normal normal-case tracking-normal text-muted">
             · installment #{maturityInstallmentNo}
           </span>
@@ -46,7 +46,9 @@ export function MaturityPayoutBreakdown({ summary, compact = false }: MaturityPa
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">
             {usesRecordedWithdrawal
-              ? 'Withdrawal amount'
+              ? maturityInstallmentNo != null
+                ? `Installment #${maturityInstallmentNo} maturity`
+                : 'Withdrawal maturity base'
               : maturityInstallmentNo != null
                 ? `Month ${maturityInstallmentNo} maturity`
                 : 'Base maturity'}

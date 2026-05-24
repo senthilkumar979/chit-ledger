@@ -114,6 +114,7 @@ export function LoansPageView({ canManageLoans, canDelete }: LoansPageViewProps)
       >
         <LoansTable
           loans={activeLoans}
+          repayments={data.repayments}
           canManage={canManageLoans}
           onDelete={canDelete ? setDeleteTarget : undefined}
           emptyMessage="No active loans. Record a new loan when capital is borrowed."
@@ -128,6 +129,7 @@ export function LoansPageView({ canManageLoans, canDelete }: LoansPageViewProps)
       >
         <LoansTable
           loans={closedLoans}
+          repayments={data.repayments}
           canManage={false}
           onDelete={canDelete ? setDeleteTarget : undefined}
           emptyMessage="No closed loans yet."

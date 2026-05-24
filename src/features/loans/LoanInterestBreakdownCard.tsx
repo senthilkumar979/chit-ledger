@@ -1,6 +1,6 @@
 'use client';
 
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
 import type { LoanInterestBreakdown } from '@/utils/loan-calculations';
 
@@ -24,8 +24,11 @@ export function LoanInterestBreakdownCard({
   const { monthlyInterest, monthsHeld, totalInterest } = breakdown;
 
   return (
-    <div className="rounded-lg border border-border/80 bg-surface/60 px-4 py-3 text-sm">
-      <p className="text-muted">
+    <div className="rounded-xl border border-border/80 bg-surface/60 px-4 py-4 text-sm shadow-sm">
+      {periodLabel ? (
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{periodLabel}</p>
+      ) : null}
+      <p className={cn(periodLabel ? 'mt-2' : '', 'text-muted')}>
         Principal{' '}
         <span className="font-semibold text-primary">{formatCurrency(principal)}</span>
       </p>
@@ -33,7 +36,7 @@ export function LoanInterestBreakdownCard({
         Rate{' '}
         <span className="font-medium text-primary">{rateToPercentLabel(rate)} per month</span>
         {' · '}
-        {periodLabel ? `Interest from ${formatDate(startDate)}` : `Started ${formatDate(startDate)}`}
+        {periodLabel ?? `From ${formatDate(startDate)}`}
       </p>
       <p className="mt-1 text-muted">
         Repayment date{' '}

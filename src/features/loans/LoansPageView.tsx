@@ -101,6 +101,7 @@ export function LoansPageView({ canManageLoans, canDelete }: LoansPageViewProps)
 
       <ProfitLossPanel
         data={profitLoss}
+        loanStats={loanStats}
         year={year}
         onYearChange={setYear}
         yearOptions={data.yearOptions}

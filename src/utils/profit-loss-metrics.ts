@@ -1,8 +1,8 @@
 import { getRecordedAmount, hasRecordedPayment } from '@/utils/chit-payment-summary';
-import { summarizeLoanBalance } from '@/utils/loan-balance';
+import { calculateLoanInterestSoFar, summarizeLoanBalance } from '@/utils/loan-balance';
 import type { Loan, LoanRepayment } from '@/types/database';
 import type { PaymentWithChit } from '@/utils/payment-month';
-import { isDateInYear } from '@/utils/loan-calculations';
+import { calculateMonthlyLoanInterest, isDateInYear } from '@/utils/loan-calculations';
 
 export interface YearProfitLoss {
   year: number;
@@ -22,6 +22,10 @@ export interface LoanYearStats {
   loansClosedInYear: number;
   interestPaidInYear: number;
   totalLoansAllTime: number;
+  /** Sum of monthly interest on outstanding principal across active loans. */
+  monthlyInterestBurden: number;
+  /** Total interest accrued to date on all active loans (paid + accruing). */
+  interestAccruedSoFar: number;
 }
 
 function repaymentsForLoan(repayments: LoanRepayment[], loanId: string): LoanRepayment[] {
@@ -89,6 +93,17 @@ export function computeLoanYearStats(
     0,
   );
 
+  let monthlyInterestBurden = 0;
+  let interestAccruedSoFar = 0;
+  for (const loan of active) {
+    const balance = summarizeLoanBalance(loan, repaymentsForLoan(repayments, loan.id));
+    monthlyInterestBurden += calculateMonthlyLoanInterest(
+      balance.principalOutstanding,
+      loan.interest_rate,
+    );
+    interestAccruedSoFar += calculateLoanInterestSoFar(loan, repayments);
+  }
+
   return {
     activeCount: active.length,
     pendingPrincipal: round(pendingPrincipal),
@@ -96,6 +111,8 @@ export function computeLoanYearStats(
     loansClosedInYear: closedInYear.length,
     interestPaidInYear: round(interestPaidInYear),
     totalLoansAllTime: loans.length,
+    monthlyInterestBurden: round(monthlyInterestBurden),
+    interestAccruedSoFar: round(interestAccruedSoFar),
   };
 }
 

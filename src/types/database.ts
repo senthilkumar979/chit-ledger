@@ -93,6 +93,18 @@ export interface LoanWithRepayments extends Loan {
   repayments: LoanRepayment[];
 }
 
+export interface Grant {
+  id: string;
+  grant_to_person_id: string;
+  amount: number;
+  interest_start_date: string;
+  interest_rate: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  grant_to?: Person | null;
+}
+
 export interface ChitWithPayments extends Chit {
   payments: Payment[];
 }

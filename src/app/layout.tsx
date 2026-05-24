@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AppProviders } from '@/components/providers/AppProviders';
+import { BRAND } from '@/constants/brand';
 import './globals.css';
 
 const inter = Inter({
@@ -9,8 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ChitLedger — Chit Fund Management',
-  description: 'Premium chit fund ledger for members, installments, and reports',
+  title: `${BRAND.name} — Chit Fund Management`,
+  description: BRAND.tagline,
+  icons: {
+    icon: BRAND.logoSrc,
+    apple: BRAND.logoSrc,
+  },
 };
 
 export default function RootLayout({

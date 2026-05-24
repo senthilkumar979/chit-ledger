@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { supabaseRequest } from '@/lib/supabase/request';
 import { LoanStatuses } from '@/constants/loans';
 import type { CloseLoanFormData, PartialRepaymentFormData, TakeLoanFormData } from '@/schemas/loan';
 import { interestPeriodStart, summarizeLoanBalance } from '@/utils/loan-balance';
@@ -28,6 +29,7 @@ function mapRepayment(row: LoanRepayment): LoanRepayment {
 }
 
 export async function fetchLoans(): Promise<Loan[]> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('loans')
@@ -36,9 +38,11 @@ export async function fetchLoans(): Promise<Loan[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => mapLoan(row as Loan));
+  });
 }
 
 export async function fetchLoan(id: string): Promise<Loan> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('loans')
@@ -48,9 +52,10 @@ export async function fetchLoan(id: string): Promise<Loan> {
 
   if (error) throw new Error(error.message);
   return mapLoan(data as Loan);
+  });
 }
 
-export async function fetchLoanWithRepayments(id: string): Promise<LoanWithRepayments> {
+async function loadLoanWithRepayments(id: string): Promise<LoanWithRepayments> {
   const supabase = createClient();
   const [loanRes, repayRes] = await Promise.all([
     supabase
@@ -74,7 +79,12 @@ export async function fetchLoanWithRepayments(id: string): Promise<LoanWithRepay
   };
 }
 
+export async function fetchLoanWithRepayments(id: string): Promise<LoanWithRepayments> {
+  return supabaseRequest(() => loadLoanWithRepayments(id));
+}
+
 export async function createLoan(form: TakeLoanFormData): Promise<Loan> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('loans')
@@ -91,14 +101,16 @@ export async function createLoan(form: TakeLoanFormData): Promise<Loan> {
 
   if (error) throw new Error(error.message);
   return mapLoan(data as Loan);
+  });
 }
 
 export async function createPartialRepayment(
   loanId: string,
   form: PartialRepaymentFormData,
 ): Promise<LoanRepayment> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
-  const bundle = await fetchLoanWithRepayments(loanId);
+  const bundle = await loadLoanWithRepayments(loanId);
 
   if (bundle.status !== LoanStatuses.ACTIVE) {
     throw new Error('Only active loans accept partial repayments');
@@ -133,11 +145,13 @@ export async function createPartialRepayment(
 
   if (error) throw new Error(error.message);
   return mapRepayment(data as LoanRepayment);
+  });
 }
 
 export async function closeLoan(loanId: string, form: CloseLoanFormData): Promise<Loan> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
-  const bundle = await fetchLoanWithRepayments(loanId);
+  const bundle = await loadLoanWithRepayments(loanId);
 
   if (bundle.status !== LoanStatuses.ACTIVE) {
     throw new Error('Only active loans can be closed');
@@ -184,17 +198,21 @@ export async function closeLoan(loanId: string, form: CloseLoanFormData): Promis
 
   if (error) throw new Error(error.message);
   return mapLoan(data as Loan);
+  });
 }
 
 export async function deleteLoan(id: string): Promise<void> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
   const { error } = await supabase.from('loans').delete().eq('id', id);
   if (error) throw new Error(error.message);
+  });
 }
 
 export async function deleteLoanRepayment(loanId: string, repaymentId: string): Promise<Loan> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
-  const bundle = await fetchLoanWithRepayments(loanId);
+  const bundle = await loadLoanWithRepayments(loanId);
   const target = bundle.repayments.find((r) => r.id === repaymentId);
 
   if (!target) {
@@ -221,6 +239,7 @@ export async function deleteLoanRepayment(loanId: string, repaymentId: string): 
 
   if (error) throw new Error(error.message);
   return mapLoan(data as Loan);
+  });
 }
 
 function buildLoanStateAfterRepayments(

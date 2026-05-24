@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { supabaseRequest } from '@/lib/supabase/request';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import { format } from 'date-fns';
 import {
@@ -56,7 +57,7 @@ function sumMap(map: Map<string, number>, key: string, value: number) {
   map.set(key, (map.get(key) ?? 0) + value);
 }
 
-export async function fetchAnalytics(): Promise<AnalyticsBundle> {
+export async function fetchAnalyticsData(): Promise<AnalyticsBundle> {
   const rows = await fetchPaymentRows();
   const byMonth = new Map<string, number>();
   const byType = new Map<string, number>();
@@ -92,7 +93,12 @@ export async function fetchAnalytics(): Promise<AnalyticsBundle> {
   };
 }
 
+export async function fetchAnalytics(): Promise<AnalyticsBundle> {
+  return supabaseRequest(fetchAnalyticsData);
+}
+
 export async function fetchCurrentMonthPending(): Promise<number> {
+  return supabaseRequest(async () => {
   const rows = await fetchPaymentRows();
   const now = new Date();
   const year = now.getFullYear();
@@ -105,9 +111,11 @@ export async function fetchCurrentMonthPending(): Promise<number> {
     if (!isInstallmentDueInMonth(start, p.installment_no, year, month)) return sum;
     return sum + pendingAmount(Number(p.expected_amount), p.advance_amount_paid);
   }, 0);
+  });
 }
 
 export async function fetchRecentActivity() {
+  return supabaseRequest(async () => {
   const supabase = createClient();
   const { data } = await supabase
     .from('payments')
@@ -124,5 +132,6 @@ export async function fetchRecentActivity() {
       text: `Payment — ${row.chit?.person?.name ?? 'Member'} #${p.installment_no}`,
       time: p.paid_date ?? '',
     };
+  });
   });
 }

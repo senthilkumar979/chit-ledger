@@ -1,8 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { supabaseRequest } from '@/lib/supabase/request';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { Button } from '@/components/ui/Button';
 import type { Profile } from '@/types/database';
 import { roleLabels } from '@/constants/roles';
@@ -16,7 +19,7 @@ export function AppHeader({ profile }: AppHeaderProps) {
 
   async function handleSignOut() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabaseRequest(() => supabase.auth.signOut());
     router.push('/auth/login');
     router.refresh();
   }
@@ -24,7 +27,9 @@ export function AppHeader({ profile }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="flex h-14 items-center justify-between px-4 lg:px-8">
-        <p className="text-sm font-semibold text-primary lg:hidden">ChitLedger</p>
+        <Link href="/dashboard" className="lg:hidden">
+          <BrandLogo size="xs" showWordmark wordmarkClassName="[&_p:last-child]:hidden" />
+        </Link>
         <div className="hidden flex-1 lg:block" />
         <div className="flex items-center gap-3">
           {profile ? (

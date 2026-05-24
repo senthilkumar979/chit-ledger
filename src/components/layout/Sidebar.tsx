@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Landmark } from 'lucide-react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { navItems } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 
@@ -10,12 +10,11 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border bg-card">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-          <Landmark className="h-5 w-5 text-white" />
-        </div>
-        <span className="text-lg font-bold text-primary">ChitLedger</span>
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col border-r border-border bg-card">
+      <div className="flex h-16 items-center border-b border-border px-5">
+        <Link href="/dashboard" className="min-w-0">
+          <BrandLogo size="sm" showWordmark />
+        </Link>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map(({ href, label, icon: Icon }) => {

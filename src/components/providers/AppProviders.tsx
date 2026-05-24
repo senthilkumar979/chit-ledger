@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Toaster } from 'sonner';
+import { SupabaseLoadingProvider } from '@/components/providers/SupabaseLoadingProvider';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -16,8 +17,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      {children}
-      <Toaster position="top-center" richColors closeButton />
+      <SupabaseLoadingProvider>
+        {children}
+        <Toaster position="top-center" richColors closeButton />
+      </SupabaseLoadingProvider>
     </QueryClientProvider>
   );
 }

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { supabaseRequest } from '@/lib/supabase/request';
 import { loginSchema, type LoginFormData } from '@/schemas/auth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +20,7 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginFormData) {
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword(data);
+    const { error } = await supabaseRequest(() => supabase.auth.signInWithPassword(data));
 
     if (error) {
       toast.error(error.message);

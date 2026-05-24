@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { supabaseRequest } from '@/lib/supabase/request';
 import type { Loan, LoanRepayment } from '@/types/database';
 import type { PaymentWithChit } from '@/utils/payment-month';
 import {
@@ -18,6 +19,7 @@ export interface EnterpriseDataBundle extends EnterpriseBundleInput {
 export async function fetchEnterpriseData(
   selectedMonthKey?: string,
 ): Promise<EnterpriseDataBundle> {
+  return supabaseRequest(async () => {
   const supabase = createClient();
 
   const [paymentsRes, chitsRes, loansRes, repaymentsRes] = await Promise.all([
@@ -53,4 +55,5 @@ export async function fetchEnterpriseData(
     dashboard: buildEnterpriseDashboardMetrics(input, selectedMonthKey),
     reports: buildEnterpriseReportsMetrics(input),
   };
+  });
 }

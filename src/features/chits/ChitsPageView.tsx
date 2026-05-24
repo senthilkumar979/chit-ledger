@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Landmark, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { fetchChits, createChit } from '@/services/chits';
 import { useCatalogViewMode } from '@/hooks/useCatalogViewMode';
 import { ChitsHero } from './ChitsHero';
@@ -149,9 +150,7 @@ function EmptyChits({
 }) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-gradient-to-b from-card to-surface/50 px-6 py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/20">
-        <Landmark className="h-8 w-8 text-accent" />
-      </div>
+      <BrandLogo size="lg" className="mb-4" />
       <h3 className="text-lg font-semibold text-primary">
         {hasFilters ? 'No chits match filters' : 'Start your first chit'}
       </h3>

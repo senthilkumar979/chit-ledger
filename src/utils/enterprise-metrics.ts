@@ -140,6 +140,27 @@ export interface CityGeoRow {
   memberCount: number;
 }
 
+export interface ScheduleCompareRow {
+  schedule: string;
+  count: number;
+  revenue: number;
+}
+
+export interface ChitPortfolioBar {
+  label: string;
+  key: 'total' | 'active' | 'matured' | 'withdrawn';
+  count: number;
+  fill: string;
+}
+
+export interface GeographicChitRow {
+  city: string;
+  total: number;
+  active: number;
+  matured: number;
+  withdrawn: number;
+}
+
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface DashboardAlert {
@@ -162,6 +183,9 @@ export interface EnterpriseDashboardMetrics {
   chitTypes: ChitTypeSlice[];
   maturityPipeline: MaturityBucket[];
   cities: CityGeoRow[];
+  scheduleComparison: ScheduleCompareRow[];
+  chitPortfolio: ChitPortfolioBar[];
+  geographicChits: GeographicChitRow[];
   alerts: DashboardAlert[];
 }
 
@@ -446,6 +470,9 @@ export function buildEnterpriseDashboardMetrics(
 
   const maturityPipeline = buildMaturityPipeline(chits, byChitPayments);
   const cities = buildCityMetrics(memberMap);
+  const scheduleComparison = buildScheduleComparison(chits, byChitPayments);
+  const chitPortfolio = buildChitPortfolioBars(chits);
+  const geographicChits = buildGeographicChits(chits);
   const alerts = buildAlerts(payments, chits, loans, principalOutstanding, totalPayoutLiability);
 
   return {
@@ -498,8 +525,63 @@ export function buildEnterpriseDashboardMetrics(
     chitTypes,
     maturityPipeline,
     cities,
+    scheduleComparison,
+    chitPortfolio,
+    geographicChits,
     alerts,
   };
+}
+
+function classifyChitLifecycle(chit: EnterpriseChitRow): 'active' | 'matured' | 'withdrawn' {
+  if (chit.withdrawal) return 'withdrawn';
+  if (chit.matured) return 'matured';
+  return 'active';
+}
+
+function buildScheduleComparison(
+  chits: EnterpriseChitRow[],
+  byChit: Map<string, PaymentWithChit[]>,
+): ScheduleCompareRow[] {
+  const map = new Map<string, { count: number; revenue: number }>();
+  for (const chit of chits) {
+    const schedule = chit.category?.trim() || 'Unspecified';
+    const summary = summarizeChitPayments(byChit.get(chit.id) ?? []);
+    const bucket = map.get(schedule) ?? { count: 0, revenue: 0 };
+    bucket.count++;
+    bucket.revenue += summary.totalCollected;
+    map.set(schedule, bucket);
+  }
+  return [...map.entries()]
+    .map(([schedule, v]) => ({
+      schedule,
+      count: v.count,
+      revenue: round(v.revenue),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function buildChitPortfolioBars(chits: EnterpriseChitRow[]): ChitPortfolioBar[] {
+  const counts = { active: 0, matured: 0, withdrawn: 0 };
+  for (const chit of chits) counts[classifyChitLifecycle(chit)]++;
+
+  return [
+    { label: 'Total', key: 'total', count: chits.length, fill: '#64748B' },
+    { label: 'Active', key: 'active', count: counts.active, fill: '#16A34A' },
+    { label: 'Matured', key: 'matured', count: counts.matured, fill: '#0284C7' },
+    { label: 'Withdrawn', key: 'withdrawn', count: counts.withdrawn, fill: '#DC2626' },
+  ];
+}
+
+function buildGeographicChits(chits: EnterpriseChitRow[]): GeographicChitRow[] {
+  const map = new Map<string, GeographicChitRow>();
+  for (const chit of chits) {
+    const city = chit.person?.city?.trim() || 'Unknown';
+    const row = map.get(city) ?? { city, total: 0, active: 0, matured: 0, withdrawn: 0 };
+    row.total++;
+    row[classifyChitLifecycle(chit)]++;
+    map.set(city, row);
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total).slice(0, 12);
 }
 
 function isPaymentDueInSelectedMonth(payment: PaymentWithChit, monthKey: string): boolean {

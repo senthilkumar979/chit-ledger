@@ -32,8 +32,8 @@ function formatScheduleRange(start: string | null, end: string | null): string {
   return 'Schedule not set';
 }
 
-function sortPayments(chit: Chit): Payment[] {
-  return [...(chit.payments ?? [])].sort((a, b) => a.installment_no - b.installment_no) as Payment[];
+function sortPayments(chit: Chit) {
+  return [...(chit.payments ?? [])].sort((a, b) => a.installment_no - b.installment_no);
 }
 
 export function buildPersonLinkedChitDisplay(chit: Chit): PersonLinkedChitDisplay {

@@ -10,22 +10,19 @@ import {
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import { ChartPanel } from '@/components/analytics/ChartPanel';
-import { DataTable, type DataTableColumn } from '@/components/analytics/DataTable';
 import { CashFlowComboChart } from '@/components/charts/enterprise/CashFlowComboChart';
 import { formatCurrency, cn } from '@/lib/utils';
 import type {
   EnterpriseDashboardMetrics,
   MemberLeaderboardRow,
-  RiskMemberRow,
 } from '@/utils/enterprise-metrics';
+import { DashboardInsightCards } from './DashboardInsightCards';
 
 interface DashboardAnalyticsSectionsProps {
   metrics: EnterpriseDashboardMetrics;
@@ -43,19 +40,6 @@ export function DashboardAnalyticsSections({
     { stage: 'Expected', value: metrics.funnel.expected },
     { stage: 'Collected', value: metrics.funnel.collected },
     { stage: 'Shortfall', value: metrics.funnel.shortfall },
-  ];
-
-  const memberColumns: DataTableColumn<RiskMemberRow>[] = [
-    { id: 'name', header: 'Member', accessor: (r) => r.name },
-    { id: 'city', header: 'City', accessor: (r) => r.city, hiddenOnMobile: true },
-    { id: 'out', header: 'Outstanding', accessor: (r) => r.outstanding, isCurrency: true },
-    { id: 'missed', header: 'Missed', accessor: (r) => r.missedInstallments },
-    {
-      id: 'risk',
-      header: 'Risk',
-      accessor: (r) => r.riskLevel.charAt(0).toUpperCase() + r.riskLevel.slice(1),
-      sortable: false,
-    },
   ];
 
   return (
@@ -115,109 +99,42 @@ export function DashboardAnalyticsSections({
         </ChartPanel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ChartPanel title="Top members by revenue" description="Who are our most valuable members?">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={metrics.topMembers}
-              layout="vertical"
-              onClick={(s) => {
-                const payload = s as { activePayload?: { payload?: MemberLeaderboardRow }[] } | null;
-                const id = payload?.activePayload?.[0]?.payload?.personId;
-                if (id) router.push(`/persons/${id}`);
-              }}
-            >
-              <XAxis type="number" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
-              <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Bar dataKey="totalPaid" fill="#0F172A" radius={[0, 4, 4, 0]} className="cursor-pointer" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartPanel>
+      <ChartPanel title="Top members by revenue" description="Who are our most valuable members?" height="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={metrics.topMembers}
+            layout="vertical"
+            onClick={(s) => {
+              const payload = s as { activePayload?: { payload?: MemberLeaderboardRow }[] } | null;
+              const id = payload?.activePayload?.[0]?.payload?.personId;
+              if (id) router.push(`/persons/${id}`);
+            }}
+          >
+            <XAxis type="number" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
+            <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 10 }} />
+            <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+            <Bar dataKey="totalPaid" fill="#0F172A" radius={[0, 4, 4, 0]} className="cursor-pointer" />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartPanel>
 
-        <ChartPanel title="Risk members" description="Who may default?">
-          <DataTable
-            columns={memberColumns}
-            data={metrics.riskMembers}
-            rowKey={(r) => r.personId}
-            exportFilename="risk-members.csv"
-            onRowClick={(r) => router.push(`/persons/${r.personId}`)}
-            pageSize={10}
-          />
-        </ChartPanel>
-      </div>
+      <DashboardInsightCards metrics={metrics} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ChartPanel title="Chit type distribution" description="What products drive business?">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={metrics.chitTypes} dataKey="revenue" nameKey="label" innerRadius={50} outerRadius={80}>
-                {metrics.chitTypes.map((_, i) => (
-                  <Cell key={i} fill={i === 0 ? '#0F172A' : '#2563EB'} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-
-        <ChartPanel title="Maturity pipeline" description="What payouts are approaching?">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={metrics.maturityPipeline}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis yAxisId="left" tickFormatter={(v) => String(v)} />
-              <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
-              <Tooltip />
-              <Bar yAxisId="left" dataKey="count" name="Chits" fill="#0F172A" radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="right" dataKey="liability" name="Liability" fill="#DC2626" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-      </div>
-
-      <ChartPanel title="Geographic insights" description="Which locations perform better?">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {metrics.cities.map((city) => (
-            <CityCard key={city.city} city={city.city} revenue={city.revenue} risk={city.riskScore} members={city.memberCount} />
-          ))}
-        </div>
+      <ChartPanel title="Maturity pipeline" description="What payouts are approaching?" height="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={metrics.maturityPipeline}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+            <YAxis yAxisId="left" tickFormatter={(v) => String(v)} />
+            <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
+            <Tooltip />
+            <Bar yAxisId="left" dataKey="count" name="Chits" fill="#0F172A" radius={[4, 4, 0, 0]} />
+            <Bar yAxisId="right" dataKey="liability" name="Liability" fill="#DC2626" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </ChartPanel>
 
       <AlertsPanel alerts={metrics.alerts} />
-    </div>
-  );
-}
-
-function CityCard({
-  city,
-  revenue,
-  risk,
-  members,
-}: {
-  city: string;
-  revenue: number;
-  risk: number;
-  members: number;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-surface/30 p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-primary">{city}</p>
-          <p className="text-xs text-muted">{members} members</p>
-        </div>
-        <span
-          className={cn(
-            'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-            risk >= 60 ? 'bg-danger/10 text-danger' : risk >= 30 ? 'bg-warning/10 text-warning' : 'bg-accent/10 text-accent',
-          )}
-        >
-          Risk {risk}
-        </span>
-      </div>
-      <p className="mt-2 text-lg font-bold tabular-nums">{formatCurrency(revenue)}</p>
     </div>
   );
 }

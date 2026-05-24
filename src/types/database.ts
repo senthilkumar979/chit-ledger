@@ -38,7 +38,17 @@ export interface Chit {
   created_at: string;
   updated_at: string;
   person?: Person;
-  payments?: Pick<Payment, 'status'>[];
+  payments?: Array<
+    Pick<
+      Payment,
+      | 'status'
+      | 'installment_no'
+      | 'expected_amount'
+      | 'amount_paid'
+      | 'advance_amount_paid'
+      | 'maturity_amount'
+    >
+  >;
 }
 
 export interface Payment {

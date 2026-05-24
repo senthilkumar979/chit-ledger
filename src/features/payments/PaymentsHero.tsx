@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Clock, CreditCard } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, CreditCard, CalendarDays } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import type { MonthlyScheduledPaymentsResult } from '@/utils/payment-month';
 
 interface PaymentsHeroProps {
   total: number;
@@ -11,6 +12,7 @@ interface PaymentsHeroProps {
   overdue: number;
   collectedAmount: number;
   monthLabel: string;
+  schedule: MonthlyScheduledPaymentsResult;
 }
 
 export function PaymentsHero({
@@ -21,9 +23,11 @@ export function PaymentsHero({
   overdue,
   collectedAmount,
   monthLabel,
+  schedule,
 }: PaymentsHeroProps) {
   const stats = [
-    { label: 'Due in month', value: String(total), icon: CreditCard },
+    { label: 'Scheduled', value: String(schedule.scheduledCount), icon: CalendarDays },
+    { label: 'Listed', value: String(total), icon: CreditCard },
     { label: 'Paid', value: String(paid), icon: CheckCircle2 },
     { label: 'Pending', value: String(pending), icon: Clock },
     { label: 'Partial', value: String(partial), icon: Clock },
@@ -31,16 +35,29 @@ export function PaymentsHero({
     { label: 'Recorded', value: formatCurrency(collectedAmount), icon: CreditCard },
   ];
 
+  const excludedParts: string[] = [];
+  if (schedule.excludedOutsidePeriod > 0) {
+    excludedParts.push(`${schedule.excludedOutsidePeriod} outside chit period`);
+  }
+  if (schedule.excludedNoStartDate > 0) {
+    excludedParts.push(`${schedule.excludedNoStartDate} missing start date`);
+  }
+  if (schedule.missingPaymentRow > 0) {
+    excludedParts.push(`${schedule.missingPaymentRow} without a payments-table row`);
+  }
+
   return (
     <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-accent/90 via-primary to-secondary p-6 text-white shadow-xl sm:p-8">
       <div className="pointer-events-none absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">Collections</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Payments</h1>
-        <p className="mt-2 max-w-lg text-sm text-white/70">
-          Summary for installments due in {monthLabel}. List filters below narrow the rows shown.
+        <p className="mt-2 max-w-xl text-sm text-white/70">
+          Scheduled installments for {monthLabel} come from the chits table (start–end period). Each
+          row&apos;s status — paid, partial, pending, or overdue — is read from the payments table.
+          {excludedParts.length > 0 ? ` Skipped: ${excludedParts.join('; ')}.` : ''}
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {stats.map(({ label, value, icon: Icon }) => (
             <div
               key={label}

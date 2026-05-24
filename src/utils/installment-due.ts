@@ -1,3 +1,5 @@
+import { INSTALLMENT_COUNT } from '@/constants/chit-config';
+
 function parseLocalDate(dateStr: string): { year: number; month: number; day: number } {
   const [year, month, day] = dateStr.split('-').map(Number);
   return { year, month: month - 1, day };
@@ -12,14 +14,28 @@ export function getInstallmentDueDate(
   return new Date(year, month + installmentNo - 1, 1);
 }
 
+/** Calendar month key `YYYY-MM` → installment number (1–20), or null if before start / after schedule. */
+export function getInstallmentNumberForCalendarMonth(
+  startDate: string,
+  monthKey: string,
+): number | null {
+  const { year: startYear, month: startMonth } = parseLocalDate(startDate);
+  const [targetYear, targetMonth] = monthKey.split('-').map(Number);
+  const monthsDiff = (targetYear - startYear) * 12 + (targetMonth - 1 - startMonth);
+  if (monthsDiff < 0) return null;
+  const installmentNo = monthsDiff + 1;
+  if (installmentNo > INSTALLMENT_COUNT) return null;
+  return installmentNo;
+}
+
 export function isInstallmentDueInMonth(
   startDate: string,
   installmentNo: number,
   year: number,
   month: number,
 ): boolean {
-  const due = getInstallmentDueDate(startDate, installmentNo);
-  return due.getFullYear() === year && due.getMonth() === month;
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+  return getInstallmentNumberForCalendarMonth(startDate, monthKey) === installmentNo;
 }
 
 export function addMonthsToDateString(startDate: string, months: number): string {
@@ -36,6 +52,29 @@ export const CHIT_END_MONTHS_FROM_START = 19;
 
 export function chitEndDateFromStart(startDate: string): string {
   return addMonthsToDateString(startDate, CHIT_END_MONTHS_FROM_START);
+}
+
+function dateToMonthOrdinal(dateStr: string): number {
+  const { year, month } = parseLocalDate(dateStr);
+  return year * 12 + month;
+}
+
+export function monthKeyToOrdinal(monthKey: string): number {
+  const [year, month] = monthKey.split('-').map(Number);
+  return year * 12 + (month - 1);
+}
+
+/** True when the calendar month falls within the chit's start → end period (inclusive). */
+export function isCalendarMonthWithinChitPeriod(
+  monthKey: string,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+): boolean {
+  if (!startDate) return false;
+  const monthOrd = monthKeyToOrdinal(monthKey);
+  const startOrd = dateToMonthOrdinal(startDate);
+  const endOrd = dateToMonthOrdinal(endDate ?? chitEndDateFromStart(startDate));
+  return monthOrd >= startOrd && monthOrd <= endOrd;
 }
 
 export function formatInstallmentDueMonth(

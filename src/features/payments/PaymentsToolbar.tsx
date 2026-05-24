@@ -116,7 +116,7 @@ export function PaymentsToolbar({
 
       <p className="text-xs text-muted">
         <span className="font-medium tabular-nums text-primary">{resultCount}</span>
-        {resultCount === 1 ? ' installment' : ' installments'} in {monthLabel}
+        {resultCount === 1 ? ' scheduled payment' : ' scheduled payments'} for {monthLabel}
         {hasFilters ? ' · filtered' : ' · sorted overdue → paid'}
       </p>
     </div>

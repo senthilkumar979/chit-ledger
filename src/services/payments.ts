@@ -2,16 +2,83 @@ import { createClient } from '@/lib/supabase/client';
 import type { Payment } from '@/types/database';
 import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/payment';
 import { computePaymentStatus } from '@/utils/payment-status';
+import {
+  buildMonthlyScheduledPayments,
+  type ChitWithSchedulePayments,
+  type MonthlyScheduledPaymentsResult,
+  type PaymentWithChit,
+} from '@/utils/payment-month';
+
+const PAYMENT_CHIT_SELECT =
+  '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, person:persons(name, city))';
+
+/** Schedule from chits; status fields from nested payments rows. */
+const CHITS_WITH_PAYMENTS_SELECT = `
+  id,
+  type,
+  category,
+  start_date,
+  end_date,
+  matured,
+  withdrawal,
+  person:persons(name, city),
+  payments(
+    id,
+    chit_id,
+    installment_no,
+    expected_amount,
+    maturity_amount,
+    paid_date,
+    payment_mode,
+    paid_to,
+    advance_amount_paid,
+    amount_paid,
+    status,
+    created_at,
+    updated_at
+  )
+`;
+
+export interface PaymentsPageData {
+  chits: ChitWithSchedulePayments[];
+}
+
+/** Loads all chits with their payment rows — schedule source is chits, status source is payments. */
+export async function fetchPaymentsPageData(): Promise<PaymentsPageData> {
+  const chits = await fetchChitsWithPaymentsSchedule();
+  return { chits };
+}
+
+export async function fetchChitsWithPaymentsSchedule(): Promise<ChitWithSchedulePayments[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('chits')
+    .select(CHITS_WITH_PAYMENTS_SELECT)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const chits = (data ?? []) as ChitWithSchedulePayments[];
+  for (const chit of chits) {
+    chit.payments?.sort((a, b) => a.installment_no - b.installment_no);
+  }
+  return chits;
+}
+
+/** Scheduled payments for a month: chits define who owes; payments table supplies status. */
+export async function fetchScheduledPaymentsForMonth(
+  monthKey: string,
+): Promise<MonthlyScheduledPaymentsResult> {
+  const chits = await fetchChitsWithPaymentsSchedule();
+  return buildMonthlyScheduledPayments(chits, monthKey);
+}
 
 export async function fetchPayments(filters?: {
   status?: string;
   search?: string;
 }): Promise<Payment[]> {
   const supabase = createClient();
-  let query = supabase
-    .from('payments')
-    .select('*, chit:chits(id, type, category, start_date, person:persons(name, city))')
-    .order('installment_no');
+  let query = supabase.from('payments').select(PAYMENT_CHIT_SELECT).order('installment_no');
 
   if (filters?.status) query = query.eq('status', filters.status);
 
@@ -134,3 +201,5 @@ export async function markOverduePayments(): Promise<void> {
     .eq('status', 'pending')
     .lt('created_at', today);
 }
+
+export type { PaymentWithChit, MonthlyScheduledPaymentsResult, ChitWithSchedulePayments };

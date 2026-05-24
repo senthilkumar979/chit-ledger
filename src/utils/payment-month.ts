@@ -1,6 +1,13 @@
 import { format } from 'date-fns';
 import type { Payment, PaymentStatus } from '@/types/database';
-import { getInstallmentDueDate, isInstallmentDueInMonth } from '@/utils/installment-due';
+import {
+  chitEndDateFromStart,
+  getInstallmentDueDate,
+  getInstallmentNumberForCalendarMonth,
+  isCalendarMonthWithinChitPeriod,
+  isInstallmentDueInMonth,
+  monthKeyToOrdinal,
+} from '@/utils/installment-due';
 import { getRecordedAmount, hasRecordedPayment } from '@/utils/chit-payment-summary';
 
 export type PaymentWithChit = Payment & {
@@ -9,8 +16,42 @@ export type PaymentWithChit = Payment & {
     type?: string;
     category?: string;
     start_date?: string | null;
+    end_date?: string | null;
+    matured?: boolean;
+    withdrawal?: boolean;
     person?: { name?: string; city?: string };
   };
+};
+
+export interface ChitForPayments {
+  id: string;
+  start_date: string | null;
+  end_date: string | null;
+  type?: string;
+  category?: string;
+  matured?: boolean;
+  withdrawal?: boolean;
+  person?: { name?: string; city?: string };
+}
+
+/** Chit row from the chits table with nested payments rows for status lookup. */
+export interface ChitWithSchedulePayments extends ChitForPayments {
+  payments?: Payment[];
+}
+
+export interface MonthlyScheduledPaymentsResult {
+  /** Scheduled rows for the month: schedule from chits, status from payments. */
+  scheduled: PaymentWithChit[];
+  scheduledCount: number;
+  excludedNoStartDate: number;
+  excludedOutsidePeriod: number;
+  missingPaymentRow: number;
+}
+
+/** @deprecated Use MonthlyScheduledPaymentsResult */
+export type MonthlyChitPaymentCoverage = MonthlyScheduledPaymentsResult & {
+  payments: PaymentWithChit[];
+  chitsInPeriod: number;
 };
 
 const STATUS_SORT_ORDER: Record<PaymentStatus, number> = {
@@ -58,6 +99,114 @@ export function filterPaymentsByMonth(
   monthKey: string,
 ): PaymentWithChit[] {
   return payments.filter((p) => isPaymentDueInMonth(p, monthKey));
+}
+
+/** Build the month's collection list: schedule from chits, status from payments table. */
+export function buildMonthlyScheduledPayments(
+  chits: ChitWithSchedulePayments[],
+  monthKey: string,
+): MonthlyScheduledPaymentsResult {
+  const scheduled: PaymentWithChit[] = [];
+  let scheduledCount = 0;
+  let excludedNoStartDate = 0;
+  let excludedOutsidePeriod = 0;
+  let missingPaymentRow = 0;
+
+  for (const chit of chits) {
+    if (!chit.start_date) {
+      excludedNoStartDate++;
+      continue;
+    }
+
+    if (!isCalendarMonthWithinChitPeriod(monthKey, chit.start_date, chit.end_date)) {
+      excludedOutsidePeriod++;
+      continue;
+    }
+
+    scheduledCount++;
+
+    const installmentNo = getInstallmentNumberForCalendarMonth(chit.start_date, monthKey);
+    if (installmentNo == null) {
+      missingPaymentRow++;
+      continue;
+    }
+
+    const paymentRow = chit.payments?.find((p) => p.installment_no === installmentNo);
+    if (!paymentRow) {
+      missingPaymentRow++;
+      continue;
+    }
+
+    scheduled.push({
+      ...paymentRow,
+      chit_id: chit.id,
+      chit: {
+        id: chit.id,
+        type: chit.type,
+        category: chit.category,
+        start_date: chit.start_date,
+        end_date: chit.end_date,
+        matured: chit.matured,
+        withdrawal: chit.withdrawal,
+        person: chit.person,
+      },
+    });
+  }
+
+  return {
+    scheduled: sortPaymentsByStatus(scheduled),
+    scheduledCount,
+    excludedNoStartDate,
+    excludedOutsidePeriod,
+    missingPaymentRow,
+  };
+}
+
+/** @deprecated Use buildMonthlyScheduledPayments with chits that include nested payments. */
+export function buildMonthlyCollectionsFromChits(
+  chits: ChitForPayments[],
+  allPayments: PaymentWithChit[],
+  monthKey: string,
+): MonthlyScheduledPaymentsResult {
+  const byChitId = new Map<string, PaymentWithChit[]>();
+  for (const payment of allPayments) {
+    const list = byChitId.get(payment.chit_id) ?? [];
+    list.push(payment);
+    byChitId.set(payment.chit_id, list);
+  }
+
+  const withPayments: ChitWithSchedulePayments[] = chits.map((chit) => ({
+    ...chit,
+    payments: byChitId.get(chit.id)?.map(({ chit: _c, ...payment }) => payment) ?? [],
+  }));
+
+  return buildMonthlyScheduledPayments(withPayments, monthKey);
+}
+
+/** @deprecated Use buildMonthlyScheduledPayments with chits from the chits table. */
+export function buildPaymentsForActiveChitsInMonth(
+  allPayments: PaymentWithChit[],
+  monthKey: string,
+): MonthlyScheduledPaymentsResult {
+  const chits: ChitForPayments[] = [];
+  const seen = new Set<string>();
+
+  for (const payment of allPayments) {
+    if (seen.has(payment.chit_id) || !payment.chit?.id) continue;
+    seen.add(payment.chit_id);
+    chits.push({
+      id: payment.chit.id,
+      start_date: payment.chit.start_date ?? null,
+      end_date: payment.chit.end_date ?? null,
+      type: payment.chit.type,
+      category: payment.chit.category,
+      matured: payment.chit.matured,
+      withdrawal: payment.chit.withdrawal,
+      person: payment.chit.person,
+    });
+  }
+
+  return buildMonthlyCollectionsFromChits(chits, allPayments, monthKey);
 }
 
 export type PaymentStatusFilter = '' | PaymentStatus;
@@ -130,6 +279,38 @@ export function computePaymentsMonthStats(payments: PaymentWithChit[]): Payments
       0,
     ),
   };
+}
+
+export function buildMonthOptionsFromChits(
+  chits: ChitForPayments[],
+): { value: string; label: string }[] {
+  const keys = new Set<string>([getCurrentMonthKey()]);
+
+  for (const chit of chits) {
+    if (!chit.start_date) continue;
+    const endDate = chit.end_date ?? chitEndDateFromStart(chit.start_date);
+    const startOrd = monthKeyToOrdinal(toMonthKeyFromDate(chit.start_date));
+    const endOrd = monthKeyToOrdinal(toMonthKeyFromDate(endDate));
+
+    for (let ord = startOrd; ord <= endOrd; ord++) {
+      keys.add(ordinalToMonthKey(ord));
+    }
+  }
+
+  return [...keys]
+    .sort()
+    .map((value) => ({ value, label: formatMonthLabel(value) }));
+}
+
+function toMonthKeyFromDate(dateStr: string): string {
+  const [year, month] = dateStr.split('-');
+  return `${year}-${month}`;
+}
+
+function ordinalToMonthKey(ordinal: number): string {
+  const year = Math.floor(ordinal / 12);
+  const month = (ordinal % 12) + 1;
+  return `${year}-${String(month).padStart(2, '0')}`;
 }
 
 export function buildMonthOptions(payments: PaymentWithChit[]): { value: string; label: string }[] {

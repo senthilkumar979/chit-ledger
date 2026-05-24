@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreditCard } from 'lucide-react';
-import { fetchPayments, markPayment, updatePayment } from '@/services/payments';
+import { fetchPaymentsPageData, markPayment, updatePayment } from '@/services/payments';
 import {
-  buildMonthOptions,
+  buildMonthOptionsFromChits,
+  buildMonthlyScheduledPayments,
   buildCategoryOptions,
   buildCityOptions,
-  filterPaymentsByMonth,
   filterPaymentsByCategory,
   filterPaymentsByCity,
   filterPaymentsByStatus,
@@ -43,20 +43,24 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
   const [mode, setMode] = useState<'record' | 'edit'>('record');
   const queryClient = useQueryClient();
 
-  const { data: allPayments, isLoading } = useQuery({
-    queryKey: ['payments'],
-    queryFn: () => fetchPayments(),
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['payments-page'],
+    queryFn: () => fetchPaymentsPageData(),
   });
 
+  const scheduleChits = pageData?.chits ?? [];
+
   const monthOptions = useMemo(
-    () => buildMonthOptions((allPayments ?? []) as PaymentWithChit[]),
-    [allPayments],
+    () => buildMonthOptionsFromChits(scheduleChits),
+    [scheduleChits],
   );
 
-  const monthPayments = useMemo(() => {
-    const list = (allPayments ?? []) as PaymentWithChit[];
-    return filterPaymentsByMonth(list, monthKey);
-  }, [allPayments, monthKey]);
+  const monthSchedule = useMemo(
+    () => buildMonthlyScheduledPayments(scheduleChits, monthKey),
+    [scheduleChits, monthKey],
+  );
+
+  const monthPayments = monthSchedule.scheduled;
 
   const cities = useMemo(() => buildCityOptions(monthPayments), [monthPayments]);
   const categories = useMemo(() => buildCategoryOptions(monthPayments), [monthPayments]);
@@ -93,6 +97,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
       toast.success('Payment recorded');
     }
     setActive(null);
+    queryClient.invalidateQueries({ queryKey: ['payments-page'] });
     queryClient.invalidateQueries({ queryKey: ['payments'] });
   }
 
@@ -110,7 +115,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <PaymentsHero {...stats} monthLabel={monthLabel} />
+      <PaymentsHero {...stats} monthLabel={monthLabel} schedule={monthSchedule} />
       <PaymentsToolbar
         search={search}
         onSearchChange={setSearch}
@@ -188,7 +193,7 @@ function EmptyPayments({
     ? 'No matching payments'
     : hasSubFilters
       ? 'No installments match your filters'
-      : `No installments due in ${monthLabel}`;
+      : `No payments scheduled for ${monthLabel}`;
 
   return (
     <div className="flex flex-col items-center rounded-2xl border border-dashed border-border py-16 text-center">

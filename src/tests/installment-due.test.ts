@@ -2,6 +2,8 @@ import {
   chitEndDateFromStart,
   formatInstallmentDueMonth,
   getInstallmentDueDate,
+  getInstallmentNumberForCalendarMonth,
+  isCalendarMonthWithinChitPeriod,
   isInstallmentDueInMonth,
   pendingAmount,
 } from '@/utils/installment-due';
@@ -19,6 +21,20 @@ describe('installment-due', () => {
   it('detects installment due month', () => {
     expect(isInstallmentDueInMonth('2025-01-01', 3, 2025, 2)).toBe(true);
     expect(isInstallmentDueInMonth('2025-01-01', 3, 2025, 0)).toBe(false);
+  });
+
+  it('maps calendar month to installment number', () => {
+    expect(getInstallmentNumberForCalendarMonth('2025-01-01', '2025-01')).toBe(1);
+    expect(getInstallmentNumberForCalendarMonth('2025-01-01', '2025-03')).toBe(3);
+    expect(getInstallmentNumberForCalendarMonth('2025-01-01', '2024-12')).toBeNull();
+    expect(getInstallmentNumberForCalendarMonth('2025-01-01', '2026-09')).toBeNull();
+  });
+
+  it('checks calendar month within chit start–end period', () => {
+    expect(isCalendarMonthWithinChitPeriod('2025-06', '2025-01-01', '2026-08-01')).toBe(true);
+    expect(isCalendarMonthWithinChitPeriod('2024-12', '2025-01-01', '2026-08-01')).toBe(false);
+    expect(isCalendarMonthWithinChitPeriod('2026-09', '2025-01-01', '2026-08-01')).toBe(false);
+    expect(isCalendarMonthWithinChitPeriod('2025-06', '2025-01-01', null)).toBe(true);
   });
 
   it('calculates pending amount after partial', () => {

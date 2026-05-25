@@ -4,6 +4,7 @@ import { ChartPanel } from '@/components/analytics/ChartPanel';
 import { DataTable, type DataTableColumn } from '@/components/analytics/DataTable';
 import type { EnterpriseReportsMetrics, MemberRevenueRow } from '@/utils/enterprise-metrics';
 import { useRouter } from 'next/navigation';
+import { MemberProfitStats } from './MemberProfitStats';
 
 interface ReportsAnalyticsSectionsProps {
   metrics: EnterpriseReportsMetrics;
@@ -51,7 +52,8 @@ export function ReportsAnalyticsSections({ metrics }: ReportsAnalyticsSectionsPr
       header: 'Profit',
       accessor: (r) => r.profit,
       isCurrency: true,
-      cellClassName: 'text-accent font-semibold',
+      cellClassName: (r) =>
+        r.profit < 0 ? 'text-danger font-semibold' : 'text-accent font-semibold',
     },
     {
       id: 'var',
@@ -62,7 +64,7 @@ export function ReportsAnalyticsSections({ metrics }: ReportsAnalyticsSectionsPr
     },
   ];
 
-  const cohortMonths = [...new Set(metrics.cohortHeatmap.map((c) => c.cohortMonth))].slice(-6);
+  const cohortMonths = [...new Set(metrics.cohortHeatmap.map((c) => c.cohortMonth))].sort();
   const installments = Array.from({ length: 20 }, (_, i) => i + 1);
 
   return (
@@ -70,6 +72,7 @@ export function ReportsAnalyticsSections({ metrics }: ReportsAnalyticsSectionsPr
 
       <section className="space-y-4">
         <SectionHeading title="Member analytics" subtitle="Who drives business?" />
+        <MemberProfitStats rows={metrics.memberRevenue} />
         <DataTable
           columns={memberColumns}
           data={metrics.memberRevenue}

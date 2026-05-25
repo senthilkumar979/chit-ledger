@@ -16,44 +16,79 @@ export interface EnterpriseDataBundle extends EnterpriseBundleInput {
   reports: EnterpriseReportsMetrics;
 }
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllPages<T>(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await fetchPage(from, to);
+    if (error) throw new Error(error.message);
+
+    const pageRows = (data ?? []) as T[];
+    rows.push(...pageRows);
+    if (pageRows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return rows;
+}
+
 export async function fetchEnterpriseData(
   selectedMonthKey?: string,
 ): Promise<EnterpriseDataBundle> {
   return supabaseRequest(async () => {
-  const supabase = createClient();
+    const supabase = createClient();
 
-  const [paymentsRes, chitsRes, loansRes, repaymentsRes] = await Promise.all([
-    supabase
-      .from('payments')
-      .select(
-        '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, person_id, person:persons(id, name, city))',
-      )
-      .order('paid_date', { ascending: false }),
-    supabase
-      .from('chits')
-      .select(
-        'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, collection_variance, withdrawal_net_amount, person:persons(name, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
+    const [payments, chits, loans, repayments] = await Promise.all([
+      fetchAllPages<PaymentWithChit>(async (from, to) =>
+        await supabase
+          .from('payments')
+          .select(
+            '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, person_id, person:persons(id, name, city))',
+          )
+          .order('id', { ascending: true })
+          .range(from, to),
       ),
-    supabase.from('loans').select('*').order('start_date', { ascending: false }),
-    supabase.from('loan_repayments').select('*').order('repayment_date', { ascending: false }),
-  ]);
+      fetchAllPages<EnterpriseChitRow>(async (from, to) =>
+        await supabase
+          .from('chits')
+          .select(
+            'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, collection_variance, withdrawal_net_amount, person:persons(name, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
+          )
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      fetchAllPages<Loan>(async (from, to) =>
+        await supabase.from('loans').select('*').order('id', { ascending: true }).range(from, to),
+      ),
+      fetchAllPages<LoanRepayment>(async (from, to) =>
+        await supabase
+          .from('loan_repayments')
+          .select('*')
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+    ]);
 
-  if (paymentsRes.error) throw new Error(paymentsRes.error.message);
-  if (chitsRes.error) throw new Error(chitsRes.error.message);
-  if (loansRes.error) throw new Error(loansRes.error.message);
-  if (repaymentsRes.error) throw new Error(repaymentsRes.error.message);
+    const input: EnterpriseBundleInput = {
+      payments,
+      chits,
+      loans,
+      repayments,
+    };
 
-  const input: EnterpriseBundleInput = {
-    payments: (paymentsRes.data ?? []) as PaymentWithChit[],
-    chits: (chitsRes.data ?? []) as EnterpriseChitRow[],
-    loans: (loansRes.data ?? []) as Loan[],
-    repayments: (repaymentsRes.data ?? []) as LoanRepayment[],
-  };
-
-  return {
-    ...input,
-    dashboard: buildEnterpriseDashboardMetrics(input, selectedMonthKey),
-    reports: buildEnterpriseReportsMetrics(input),
-  };
+    return {
+      ...input,
+      dashboard: buildEnterpriseDashboardMetrics(input, selectedMonthKey),
+      reports: buildEnterpriseReportsMetrics(input),
+    };
   });
 }

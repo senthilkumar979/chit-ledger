@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
   formatPdfCurrency,
+  type PdfRgb,
   pdfTheme,
   sanitizeFilename,
   sanitizePdfText,
@@ -16,6 +17,15 @@ import {
 export interface ReportPdfSummaryItem {
   label: string;
   value: string;
+  fillColor?: PdfRgb;
+  borderColor?: PdfRgb;
+  labelColor?: PdfRgb;
+  valueColor?: PdfRgb;
+}
+
+export interface ReportPdfCellStyle {
+  textColor?: PdfRgb;
+  fillColor?: PdfRgb;
 }
 
 export interface ReportPdfInput {
@@ -24,6 +34,7 @@ export interface ReportPdfInput {
   summaryItems?: ReportPdfSummaryItem[];
   headers: string[];
   rows: string[][];
+  bodyCellStyles?: (ReportPdfCellStyle | undefined)[][];
   filename: string;
   landscape?: boolean;
 }
@@ -59,7 +70,7 @@ export function exportReportTablePdf(input: ReportPdfInput): void {
     y = drawSummaryRow(doc, pageW, input.summaryItems, y);
   }
 
-  drawTable(doc, pageW, input.headers, input.rows, y);
+  drawTable(doc, pageW, input.headers, input.rows, y, input.bodyCellStyles);
   applyPdfFooters(doc, pageW, generatedAt, 'ChitLedger | Reports', pageH);
 
   doc.save(`${sanitizeFilename(input.filename)}.pdf`);
@@ -80,16 +91,16 @@ function drawSummaryRow(
 
   items.slice(0, 4).forEach((item, index) => {
     const x = PDF_MARGIN + index * (boxW + 5);
-    doc.setDrawColor(...pdfTheme.border);
-    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...(item.borderColor ?? pdfTheme.border));
+    doc.setFillColor(...(item.fillColor ?? pdfTheme.white));
     doc.roundedRect(x, y, boxW, 14, 1.5, 1.5, 'FD');
     doc.setFontSize(7);
-    doc.setTextColor(...pdfTheme.muted);
+    doc.setTextColor(...(item.labelColor ?? pdfTheme.muted));
     doc.setFont('helvetica', 'normal');
     doc.text(sanitizePdfText(item.label).toUpperCase(), x + 3, y + 5);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...pdfTheme.primary);
+    doc.setTextColor(...(item.valueColor ?? pdfTheme.primary));
     doc.text(sanitizePdfText(item.value), x + 3, y + 10);
   });
 
@@ -102,6 +113,7 @@ function drawTable(
   headers: string[],
   rows: string[][],
   startY: number,
+  bodyCellStyles?: (ReportPdfCellStyle | undefined)[][],
 ): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -136,6 +148,13 @@ function drawTable(
       fontStyle: 'bold',
     },
     alternateRowStyles: { fillColor: pdfTheme.surface },
+    didParseCell: (hook) => {
+      if (hook.section !== 'body') return;
+      const cellStyle = bodyCellStyles?.[hook.row.index]?.[hook.column.index];
+      if (!cellStyle) return;
+      if (cellStyle.textColor) hook.cell.styles.textColor = cellStyle.textColor;
+      if (cellStyle.fillColor) hook.cell.styles.fillColor = cellStyle.fillColor;
+    },
   });
 }
 

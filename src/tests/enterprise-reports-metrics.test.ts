@@ -152,9 +152,9 @@ describe('buildEnterpriseReportsMetrics', () => {
       chits: 2,
       totalPaid: 7500,
       outstanding: 2000,
-      amountReturned: 110900,
-      profit: -101400,
-      variance: 200,
+      amountReturned: 121500,
+      profit: -112000,
+      variance: 0,
     });
   });
 });

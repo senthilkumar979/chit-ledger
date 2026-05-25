@@ -1,11 +1,15 @@
 import { format, subMonths, startOfMonth, differenceInCalendarDays, endOfMonth } from 'date-fns';
-import { ChitTypes, type ChitType } from '@/constants/chit-config';
+import {
+  ChitTypes,
+  getChitSchedule,
+  INSTALLMENT_COUNT,
+  type ChitType,
+} from '@/constants/chit-config';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import {
   getRecordedAmount,
   getInstallmentVariance,
   hasRecordedPayment,
-  resolveChitPaymentSummary,
   summarizeChitPayments,
 } from '@/utils/chit-payment-summary';
 import { getInstallmentDueDate } from '@/utils/installment-due';
@@ -830,18 +834,15 @@ function buildMemberRevenueRows(
       profit: 0,
       variance: 0,
     };
-    const summary = resolveChitPaymentSummary(byChit.get(chit.id) ?? [], {
-      withdrawal: chit.withdrawal,
-      withdrawal_net_amount: chit.withdrawal_net_amount ?? null,
-      collection_variance: chit.collection_variance ?? null,
-      type: chit.type as ChitType | undefined,
-    });
+    const chitPayments = byChit.get(chit.id) ?? [];
+    const paymentSummary = summarizeChitPayments(chitPayments);
+    const amountReturned = resolveMemberAmountReturned(chit, chitPayments);
 
     row.chits += 1;
-    row.totalPaid += summary.totalCollected;
-    row.outstanding += summary.outstanding;
-    row.amountReturned += summary.netMaturityPayout;
-    row.variance += summary.collectionVariance;
+    row.totalPaid += paymentSummary.totalCollected;
+    row.outstanding += paymentSummary.outstanding;
+    row.amountReturned += amountReturned;
+    row.variance += paymentSummary.collectionVariance;
     members.set(personId, row);
   }
 
@@ -855,6 +856,27 @@ function buildMemberRevenueRows(
       variance: round(row.variance),
     }))
     .sort((a, b) => b.totalPaid - a.totalPaid);
+}
+
+function resolveMemberAmountReturned(
+  chit: EnterpriseChitRow,
+  payments: PaymentWithChit[],
+): number {
+  if (chit.withdrawal_net_amount != null) return Number(chit.withdrawal_net_amount);
+
+  const finalInstallment = payments.find(
+    (payment) => payment.installment_no === INSTALLMENT_COUNT,
+  );
+  if (finalInstallment?.maturity_amount != null) {
+    return Number(finalInstallment.maturity_amount);
+  }
+
+  if (chit.type) {
+    const schedule = getChitSchedule(chit.type as ChitType);
+    return Number(schedule.maturity[INSTALLMENT_COUNT - 1] ?? 0);
+  }
+
+  return 0;
 }
 
 function buildAlerts(
@@ -1003,6 +1025,7 @@ function buildCohortHeatmap(
   payments: PaymentWithChit[],
 ): CohortCell[] {
   const byChit = new Map<string, PaymentWithChit[]>();
+  const asOfDate = endOfMonth(new Date());
   for (const p of payments) {
     const list = byChit.get(p.chit_id) ?? [];
     list.push(p);
@@ -1021,20 +1044,28 @@ function buildCohortHeatmap(
 
   for (const [cohortMonth, cohortChits] of cohorts) {
     for (let inst = 1; inst <= 20; inst++) {
-      let paid = 0;
-      let total = 0;
+      let collected = 0;
+      let expected = 0;
       for (const chit of cohortChits) {
         const p = byChit.get(chit.id)?.find((x) => x.installment_no === inst);
         if (!p) continue;
-        total++;
-        if (p.status === 'paid') paid++;
-        else if (hasRecordedPayment(p)) paid += 0.5;
+        if (!chit.start_date) continue;
+
+        const dueDate = getInstallmentDueDate(chit.start_date, inst);
+        if (dueDate > asOfDate) continue;
+
+        const expectedAmount = Number(p.expected_amount);
+        const collectedAmount = hasRecordedPayment(p)
+          ? Math.min(expectedAmount, getRecordedAmount(p))
+          : 0;
+        expected += expectedAmount;
+        collected += collectedAmount;
       }
-      if (total === 0) continue;
+      if (expected === 0) continue;
       cells.push({
         cohortMonth,
         installment: inst,
-        completionPct: round((paid / total) * 100),
+        completionPct: round((collected / expected) * 100),
       });
     }
   }
@@ -1120,21 +1151,44 @@ export function filterPaymentsForReports(
     city?: string;
     category?: string;
     chitType?: string;
-    status?: PaymentStatus | '';
-    memberQuery?: string;
+    memberId?: string;
   },
 ): PaymentWithChit[] {
   return payments.filter((p) => {
+    const chitWithPersonId = p.chit as (PaymentWithChit['chit'] & {
+      person_id?: string;
+    }) | undefined;
     if (filters.city && p.chit?.person?.city !== filters.city) return false;
     if (filters.category && p.chit?.category !== filters.category) return false;
     if (filters.chitType && p.chit?.type !== filters.chitType) return false;
-    if (filters.status && p.status !== filters.status) return false;
-    if (filters.memberQuery) {
-      const q = filters.memberQuery.toLowerCase();
-      if (!p.chit?.person?.name?.toLowerCase().includes(q)) return false;
-    }
+    if (filters.memberId && chitWithPersonId?.person_id !== filters.memberId) return false;
     if (filters.dateFrom && p.paid_date && p.paid_date < filters.dateFrom) return false;
     if (filters.dateTo && p.paid_date && p.paid_date > filters.dateTo) return false;
+    return true;
+  });
+}
+
+export function filterChitsForReports(
+  chits: EnterpriseChitRow[],
+  payments: PaymentWithChit[],
+  filters: {
+    dateFrom?: string;
+    dateTo?: string;
+    city?: string;
+    category?: string;
+    chitType?: string;
+    memberId?: string;
+  },
+): EnterpriseChitRow[] {
+  const filteredPaymentChitIds = new Set(payments.map((payment) => payment.chit_id));
+  const shouldRestrictToFilteredPayments = Boolean(filters.dateFrom || filters.dateTo);
+
+  return chits.filter((chit) => {
+    if (filters.city && chit.person?.city !== filters.city) return false;
+    if (filters.category && chit.category !== filters.category) return false;
+    if (filters.chitType && chit.type !== filters.chitType) return false;
+    if (filters.memberId && chit.person_id !== filters.memberId) return false;
+    if (shouldRestrictToFilteredPayments && !filteredPaymentChitIds.has(chit.id)) return false;
     return true;
   });
 }

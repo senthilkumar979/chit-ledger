@@ -88,7 +88,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
     ]);
     exportToCsv(
       'reports-members.csv',
-      ['Member', 'City', 'Chits', 'Paid', 'Outstanding', 'Amount returned', 'Profit', 'Variance'],
+      ['Member', 'City', 'Chits', 'Paid', 'Outstanding', 'Withdrawn/Matured', 'Profit', 'Variance'],
       rows,
     );
     toast.success('CSV downloaded');
@@ -139,7 +139,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
             valueColor: netProfit < 0 ? pdfTheme.danger : pdfTheme.info,
           },
         ],
-        headers: ['Member', 'City', 'Chits', 'Total paid', 'Outstanding', 'Amount returned', 'Profit', 'Variance'],
+        headers: ['Member', 'City', 'Chits', 'Total paid', 'Outstanding', 'Withdrawn/Matured', 'Profit', 'Variance'],
         rows: filteredBundle.reports.memberRevenue.map((r) => [
           r.member,
           r.city,

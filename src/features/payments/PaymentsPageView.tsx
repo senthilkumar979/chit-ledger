@@ -66,6 +66,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
   const categories = useMemo(() => buildCategoryOptions(monthPayments), [monthPayments]);
 
   useEffect(() => {
+    // eslint-disable-next-line
     setCityFilter('');
     setCategoryFilter('');
     setStatusFilter('');

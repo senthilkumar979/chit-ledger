@@ -42,7 +42,7 @@ export function ReportsAnalyticsSections({ metrics }: ReportsAnalyticsSectionsPr
     },
     {
       id: 'returned',
-      header: 'Amount returned',
+      header: 'Withdrawn/Matured',
       accessor: (r) => r.amountReturned,
       isCurrency: true,
       cellClassName: 'text-warning font-semibold',

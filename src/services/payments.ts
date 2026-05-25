@@ -43,6 +43,23 @@ export interface PaymentsPageData {
   chits: ChitWithSchedulePayments[];
 }
 
+async function sendPaymentNotification(payload: unknown): Promise<void> {
+  try {
+    const response = await fetch('/api/notifications/payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      console.error('Payment notification failed', details);
+    }
+  } catch (error) {
+    console.error('Payment notification request failed', error);
+  }
+}
+
 async function queryChitsWithPaymentsSchedule(): Promise<ChitWithSchedulePayments[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -139,6 +156,7 @@ export async function markPayment(
       if (chitErr) throw new Error(chitErr.message);
     }
 
+    await sendPaymentNotification({ kind: 'single', paymentId: payment.id });
     return payment;
   });
 }
@@ -160,7 +178,18 @@ export async function markBulkPayments(
     if (error) throw new Error(error.message);
 
     const payload = data as { updated_count?: number } | null;
-    return { updatedCount: payload?.updated_count ?? input.installment_count };
+    const updatedCount = payload?.updated_count ?? input.installment_count;
+
+    await sendPaymentNotification({
+      kind: 'bulk',
+      chitId,
+      installmentCount: updatedCount,
+      paidDate: input.paid_date,
+      paymentMode: input.payment_mode,
+      paidTo: input.paid_to,
+    });
+
+    return { updatedCount };
   });
 }
 

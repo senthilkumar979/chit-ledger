@@ -19,7 +19,7 @@ export type PaymentWithChit = Payment & {
     end_date?: string | null;
     matured?: boolean;
     withdrawal?: boolean;
-    person?: { name?: string; city?: string };
+    person?: { name?: string; name_tamil?: string; city?: string };
   };
 };
 
@@ -31,7 +31,7 @@ export interface ChitForPayments {
   category?: string;
   matured?: boolean;
   withdrawal?: boolean;
-  person?: { name?: string; city?: string };
+  person?: { name?: string; name_tamil?: string; city?: string };
 }
 
 /** Chit row from the chits table with nested payments rows for status lookup. */

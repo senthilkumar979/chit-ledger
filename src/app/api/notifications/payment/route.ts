@@ -4,6 +4,7 @@ import { sendCallMeBotMessage } from '@/lib/callmebot';
 import { createClient } from '@/lib/supabase/server';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import { getRecordedAmount } from '@/utils/chit-payment-summary';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import type { Payment } from '@/types/database';
 
 const PAYMENT_NOTIFICATION_SELECT = `
@@ -23,7 +24,7 @@ const PAYMENT_NOTIFICATION_SELECT = `
   chit:chits(
     type,
     category,
-    person:persons(name, city)
+    person:persons(name, name_tamil, city)
   )
 `;
 
@@ -31,14 +32,14 @@ const CHIT_NOTIFICATION_SELECT = `
   id,
   type,
   category,
-  person:persons(name, city)
+  person:persons(name, name_tamil, city)
 `;
 
 interface PaymentNotificationRow extends Payment {
   chit?: {
     type?: string;
     category?: string;
-    person?: { name?: string; city?: string };
+    person?: { name?: string; name_tamil?: string; city?: string };
   } | null;
 }
 
@@ -46,7 +47,7 @@ interface ChitNotificationRow {
   id: string;
   type?: string;
   category?: string;
-  person?: { name?: string; city?: string } | null;
+  person?: { name?: string; name_tamil?: string; city?: string } | null;
 }
 
 interface SinglePaymentRequest {
@@ -84,7 +85,7 @@ function formatScheme(type?: string, category?: string): string {
 }
 
 function buildSinglePaymentMessage(payment: PaymentNotificationRow): string {
-  const memberName = payment.chit?.person?.name ?? 'Member';
+  const memberName = getDisplayPersonLabel(payment.chit?.person, 'Member');
   const city = payment.chit?.person?.city;
   const amount = getRecordedAmount(payment) || Number(payment.expected_amount);
 
@@ -105,7 +106,7 @@ function buildBulkPaymentMessage(
   chit: ChitNotificationRow,
   payload: BulkPaymentRequest,
 ): string {
-  const memberName = chit.person?.name ?? 'Member';
+  const memberName = getDisplayPersonLabel(chit.person, 'Member');
   const city = chit.person?.city;
 
   return [

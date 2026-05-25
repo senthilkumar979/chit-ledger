@@ -18,12 +18,12 @@ export async function fetchDashboardData(): Promise<DashboardDataBundle> {
       supabase
         .from('payments')
         .select(
-          '*, chit:chits(id, type, category, start_date, matured, withdrawal, person:persons(name, city))',
+          '*, chit:chits(id, type, category, start_date, matured, withdrawal, person:persons(name, name_tamil, city))',
         )
         .order('paid_date', { ascending: false }),
       supabase
         .from('chits')
-        .select('id, matured, withdrawal, type, category, person:persons(name, city)'),
+        .select('id, matured, withdrawal, type, category, person:persons(name, name_tamil, city)'),
       fetchAnalyticsData(),
     ]);
 

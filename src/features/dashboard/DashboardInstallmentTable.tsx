@@ -5,6 +5,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { getRecordedAmount, getInstallmentVariance } from '@/utils/chit-payment-summary';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import {
   paymentStatusLabel,
   paymentStatusVariant,
@@ -90,7 +91,9 @@ function TableRow({
 
   return (
     <tr className="hover:bg-surface/50">
-      <td className="px-4 py-3 font-medium text-primary">{p.chit?.person?.name ?? '—'}</td>
+      <td className="px-4 py-3 font-medium text-primary">
+        {getDisplayPersonLabel(p.chit?.person, '—')}
+      </td>
       <td className="px-4 py-3 tabular-nums">#{p.installment_no}</td>
       <td className="px-4 py-3 tabular-nums">{formatCurrency(Number(p.expected_amount))}</td>
       {showCollected ? (
@@ -136,7 +139,9 @@ function MobileRow({
     <li className="px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-primary">{p.chit?.person?.name ?? 'Member'}</p>
+          <p className="font-semibold text-primary">
+            {getDisplayPersonLabel(p.chit?.person, 'Member')}
+          </p>
           <p className="text-xs text-muted">
             #{p.installment_no} · {p.chit?.category}
             {p.paid_date ? ` · ${formatDate(p.paid_date)}` : ''}

@@ -81,6 +81,7 @@ export function PersonDetailToolbar({
           key={`${person.id}-${person.updated_at}`}
           defaultValues={{
             name: person.name,
+            name_tamil: person.name_tamil ?? '',
             city: person.city,
             phone: person.phone ?? '',
             notes: person.notes ?? '',

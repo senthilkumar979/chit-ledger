@@ -52,7 +52,7 @@ export async function fetchEnterpriseData(
         await supabase
           .from('payments')
           .select(
-            '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, person_id, person:persons(id, name, city))',
+            '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, person_id, person:persons(id, name, name_tamil, city))',
           )
           .order('id', { ascending: true })
           .range(from, to),
@@ -61,7 +61,7 @@ export async function fetchEnterpriseData(
         await supabase
           .from('chits')
           .select(
-            'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, collection_variance, withdrawal_net_amount, person:persons(name, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
+            'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, collection_variance, withdrawal_net_amount, person:persons(name, name_tamil, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
           )
           .order('id', { ascending: true })
           .range(from, to),

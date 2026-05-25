@@ -12,6 +12,7 @@ import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import { invalidateGrantQueries } from '@/lib/invalidate-grant-queries';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import { toast } from 'sonner';
 import type { GrantFormData } from '@/schemas/grant';
 
@@ -70,7 +71,7 @@ export function GrantDetailView({ grantId, canManageGrants, canDelete }: GrantDe
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">Grant details</h1>
           <p className="mt-1 text-sm text-muted">
-            {grant.grant_to?.name ?? 'Member'} · {grant.grant_to?.city ?? ''}
+            {getDisplayPersonLabel(grant.grant_to, 'Member')} · {grant.grant_to?.city ?? ''}
           </p>
         </div>
         {(canManageGrants || canDelete) && (

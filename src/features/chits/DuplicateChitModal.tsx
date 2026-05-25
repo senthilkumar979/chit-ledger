@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import { formatDate } from '@/lib/utils';
 import { duplicateChit } from '@/services/chits';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import type { Chit, ChitWithPayments } from '@/types/database';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -24,7 +25,7 @@ export function DuplicateChitModal({
 }: DuplicateChitModalProps) {
   const [isDuplicating, setIsDuplicating] = useState(false);
 
-  const memberName = chit.person?.name ?? 'Member';
+  const memberName = getDisplayPersonLabel(chit.person, 'Member');
   const typeLabel = chitTypeLabels[chit.type] ?? chit.type;
   const startLabel = chit.start_date ? formatDate(chit.start_date) : 'Not set';
   const endLabel = chit.end_date ? formatDate(chit.end_date) : 'Not set';

@@ -1,5 +1,6 @@
 'use client';
 
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import { useRouter } from 'next/navigation';
 import {
   Bar,
@@ -43,7 +44,13 @@ export function DashboardInsightCards({
 
   const riskColumns: DataTableColumn<RiskMemberRow>[] = [
     { id: 'name', header: 'Member', accessor: (r) => r.name },
-    { id: 'city', header: 'City', accessor: (r) => r.city, hiddenOnMobile: true },
+    {
+      id: 'city',
+      header: 'City',
+      accessor: (r) => r.city,
+      exportAccessor: (r) => getMemberCityInEnglish(r.city),
+      hiddenOnMobile: true,
+    },
     { id: 'out', header: 'Outstanding', accessor: (r) => r.outstanding, isCurrency: true },
     { id: 'missed', header: 'Missed', accessor: (r) => r.missedInstallments },
     {
@@ -55,7 +62,12 @@ export function DashboardInsightCards({
   ];
 
   const geoColumns: DataTableColumn<CityGeoRow>[] = [
-    { id: 'city', header: 'City', accessor: (r) => r.city },
+    {
+      id: 'city',
+      header: 'City',
+      accessor: (r) => r.city,
+      exportAccessor: (r) => getMemberCityInEnglish(r.city),
+    },
     { id: 'members', header: 'Members', accessor: (r) => r.memberCount },
     { id: 'revenue', header: 'Revenue', accessor: (r) => r.revenue, isCurrency: true },
     { id: 'risk', header: 'Risk score', accessor: (r) => r.riskScore },
@@ -82,7 +94,12 @@ export function DashboardInsightCards({
   ];
 
   const geoChitColumns: DataTableColumn<GeographicChitRow>[] = [
-    { id: 'city', header: 'City', accessor: (r) => r.city },
+    {
+      id: 'city',
+      header: 'City',
+      accessor: (r) => r.city,
+      exportAccessor: (r) => getMemberCityInEnglish(r.city),
+    },
     { id: 'total', header: 'Total', accessor: (r) => r.total },
     { id: 'active', header: 'Active', accessor: (r) => r.active },
     { id: 'matured', header: 'Matured', accessor: (r) => r.matured },

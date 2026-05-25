@@ -17,7 +17,6 @@ import {
   sortPaymentsByStatus,
   computePaymentsMonthStats,
   type PaymentStatusFilter,
-  type PaymentWithChit,
 } from '@/utils/payment-month';
 import { PaymentsHero } from './PaymentsHero';
 import { PaymentsToolbar } from './PaymentsToolbar';
@@ -28,6 +27,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton';
 import { toast } from 'sonner';
 import type { Payment } from '@/types/database';
 import type { MarkPaymentFormData } from '@/schemas/payment';
+import { matchesPersonNameQuery } from '@/utils/person-display';
 
 interface PaymentsPageViewProps {
   canWrite: boolean;
@@ -48,7 +48,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
     queryFn: () => fetchPaymentsPageData(),
   });
 
-  const scheduleChits = pageData?.chits ?? [];
+  const scheduleChits = useMemo(() => pageData?.chits ?? [], [pageData?.chits]);
 
   const monthOptions = useMemo(
     () => buildMonthOptionsFromChits(scheduleChits),
@@ -79,8 +79,7 @@ export function PaymentsPageView({ canWrite }: PaymentsPageViewProps) {
     const sorted = sortPaymentsByStatus(byCategory);
 
     if (!search.trim()) return sorted;
-    const q = search.toLowerCase();
-    return sorted.filter((p) => p.chit?.person?.name?.toLowerCase().includes(q));
+    return sorted.filter((p) => matchesPersonNameQuery(p.chit?.person, search));
   }, [monthPayments, statusFilter, cityFilter, categoryFilter, search]);
 
   const stats = useMemo(

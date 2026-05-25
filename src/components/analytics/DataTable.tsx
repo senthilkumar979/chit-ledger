@@ -9,6 +9,7 @@ export interface DataTableColumn<T> {
   id: string;
   header: string;
   accessor: (row: T) => string | number;
+  exportAccessor?: (row: T) => string | number;
   sortable?: boolean;
   isCurrency?: boolean;
   mobileLabel?: string;
@@ -87,7 +88,9 @@ export function DataTable<T>({
     exportToCsv(
       exportFilename,
       activeCols.map((c) => c.header),
-      filtered.map((row) => activeCols.map((c) => String(c.accessor(row)))),
+      filtered.map((row) =>
+        activeCols.map((c) => String((c.exportAccessor ?? c.accessor)(row))),
+      ),
     );
   };
 

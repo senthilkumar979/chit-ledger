@@ -1,3 +1,4 @@
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import { formatDate } from '@/lib/utils';
 import { sanitizePdfText } from '@/utils/pdf/pdf-theme';
 import { currencyPdfCell } from '@/utils/pdf/export-report-pdf';
@@ -19,7 +20,7 @@ export function collectionsToPdfRows(rows: CollectionReportRow[]): string[][] {
     String(r.installmentNo),
     schemePdf(r.scheme),
     r.schedule,
-    r.city,
+    getMemberCityInEnglish(r.city),
     r.paidDate ? formatDate(r.paidDate) : '-',
     currencyPdfCell(r.expected),
     currencyPdfCell(r.collected),
@@ -51,7 +52,7 @@ export function outstandingToPdfRows(rows: OutstandingReportRow[]): string[][] {
     String(r.installmentNo),
     schemePdf(r.scheme),
     r.schedule,
-    r.city,
+    getMemberCityInEnglish(r.city),
     currencyPdfCell(r.expected),
     currencyPdfCell(r.collected),
     currencyPdfCell(r.pending),
@@ -76,7 +77,7 @@ export function maturedToPdfRows(rows: MaturedReportRow[]): string[][] {
     r.memberName,
     schemePdf(r.scheme),
     r.schedule,
-    r.city,
+    getMemberCityInEnglish(r.city),
     r.endDate ? formatDate(r.endDate) : '-',
     currencyPdfCell(r.netPayout),
     r.withdrawn ? 'Yes' : 'No',
@@ -100,7 +101,7 @@ export function portfolioToPdfRows(rows: PortfolioReportRow[]): string[][] {
     r.memberName,
     schemePdf(r.scheme),
     r.schedule,
-    r.city,
+    getMemberCityInEnglish(r.city),
     r.lifecycle,
     `${r.paidCount}/20`,
     currencyPdfCell(r.collected),

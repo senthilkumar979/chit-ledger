@@ -24,7 +24,7 @@ export async function fetchProfitLossData(): Promise<ProfitLossBundle> {
     const [loansRes, repaymentsRes, paymentsRes] = await Promise.all([
       supabase
         .from('loans')
-        .select('*, loan_from:persons(id, name, city)')
+        .select('*, loan_from:persons(id, name, name_tamil, city)')
         .order('start_date', { ascending: false }),
       supabase.from('loan_repayments').select('*').order('repayment_date', { ascending: false }),
       supabase

@@ -16,7 +16,7 @@ export async function fetchGrants(): Promise<Grant[]> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('grants')
-      .select('*, grant_to:persons(id, name, city)')
+      .select('*, grant_to:persons(id, name, name_tamil, city)')
       .order('interest_start_date', { ascending: false });
 
     if (error) throw new Error(error.message);
@@ -29,7 +29,7 @@ export async function fetchGrantById(id: string): Promise<Grant> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('grants')
-      .select('*, grant_to:persons(id, name, city)')
+      .select('*, grant_to:persons(id, name, name_tamil, city)')
       .eq('id', id)
       .single();
 
@@ -50,7 +50,7 @@ export async function createGrant(form: GrantFormData): Promise<Grant> {
         interest_rate: grantFormToRate(form.interest_percent),
         notes: form.notes?.trim() || null,
       })
-      .select('*, grant_to:persons(id, name, city)')
+      .select('*, grant_to:persons(id, name, name_tamil, city)')
       .single();
 
     if (error) throw new Error(error.message);
@@ -71,7 +71,7 @@ export async function updateGrant(id: string, form: GrantFormData): Promise<Gran
         notes: form.notes?.trim() || null,
       })
       .eq('id', id)
-      .select('*, grant_to:persons(id, name, city)')
+      .select('*, grant_to:persons(id, name, name_tamil, city)')
       .single();
 
     if (error) throw new Error(error.message);

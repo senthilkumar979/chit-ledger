@@ -13,6 +13,7 @@ import { PersonDetailToolbar } from './PersonDetailToolbar';
 import { PersonLinkedChits } from './PersonLinkedChits';
 import { PersonDetailSkeleton } from './PersonDetailSkeleton';
 import { invalidateChitQueries } from '@/lib/invalidate-chit-queries';
+import { getPrimaryPersonName } from '@/utils/person-display';
 import { toast } from 'sonner';
 import type { ChitFormData } from '@/schemas/chit';
 
@@ -60,6 +61,8 @@ export function PersonDetailView({
     );
   }
 
+  const personDisplayName = getPrimaryPersonName(person);
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <BackLink href="/persons" label="Back to members" />
@@ -87,7 +90,7 @@ export function PersonDetailView({
         className="max-w-lg"
       >
         <p className="mb-5 text-sm text-muted">
-          Link a scheme to {person.name}. Twenty installments are generated on save.
+          Link a scheme to {personDisplayName}. Twenty installments are generated on save.
         </p>
         <ChitForm
           lockPersonId={personId}

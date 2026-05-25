@@ -4,6 +4,7 @@ import type { Chit, ChitWithPayments } from '@/types/database';
 import type { ChitFormData } from '@/schemas/chit';
 import { chitToDuplicateFormData } from '@/utils/chit-duplicate';
 import { chitEndDateFromStart } from '@/utils/installment-due';
+import { matchesPersonNameQuery } from '@/utils/person-display';
 
 export async function fetchChitsByPerson(personId: string): Promise<Chit[]> {
   return supabaseRequest(async () => {
@@ -11,7 +12,7 @@ export async function fetchChitsByPerson(personId: string): Promise<Chit[]> {
     const { data, error } = await supabase
       .from('chits')
       .select(
-        '*, person:persons(id, name, city), payments(installment_no, status, expected_amount, amount_paid, advance_amount_paid, maturity_amount)',
+        '*, person:persons(id, name, name_tamil, city), payments(installment_no, status, expected_amount, amount_paid, advance_amount_paid, maturity_amount)',
       )
       .eq('person_id', personId)
       .order('created_at', { ascending: false });
@@ -26,17 +27,15 @@ export async function fetchChits(search?: string): Promise<Chit[]> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('chits')
-      .select('*, person:persons(id, name, city, phone), payments(status)')
+      .select('*, person:persons(id, name, name_tamil, city, phone), payments(status)')
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
     let results = (data ?? []) as Chit[];
     if (search?.trim()) {
-      const q = search.toLowerCase();
       results = results.filter((c) => {
-        const name = c.person?.name?.toLowerCase() ?? '';
-        return name.includes(q) || c.category.toLowerCase().includes(q);
+        return matchesPersonNameQuery(c.person, search) || c.category.toLowerCase().includes(search.toLowerCase());
       });
     }
     return results;
@@ -75,7 +74,7 @@ export async function createChit(input: ChitFormData): Promise<Chit> {
         start_date: input.start_date || null,
         end_date: endDate,
       })
-      .select('*, person:persons(id, name, city)')
+      .select('*, person:persons(id, name, name_tamil, city)')
       .single();
 
     if (error) throw new Error(error.message);

@@ -12,6 +12,7 @@ import {
   hasRecordedPayment,
   summarizeChitPayments,
 } from '@/utils/chit-payment-summary';
+import { getPrimaryPersonName } from '@/utils/person-display';
 import { getInstallmentDueDate } from '@/utils/installment-due';
 import { summarizeLoanBalance } from '@/utils/loan-balance';
 import { calculateMonthlyLoanInterest } from '@/utils/loan-calculations';
@@ -36,7 +37,7 @@ export interface EnterpriseChitRow {
   withdrawal_date?: string | null;
   collection_variance?: number | null;
   withdrawal_net_amount?: number | null;
-  person?: { name?: string; city?: string };
+  person?: { name?: string; name_tamil?: string; city?: string };
   payments?: PaymentWithChit[];
 }
 
@@ -691,7 +692,7 @@ function aggregateMembers(
     if (!map.has(id)) {
       map.set(id, {
         personId: id,
-        name: chit.person?.name ?? 'Unknown',
+        name: getPrimaryPersonName(chit.person),
         city: chit.person?.city ?? '-',
         totalPaid: 0,
         totalVariance: 0,
@@ -736,7 +737,7 @@ function buildTopMembers(chits: EnterpriseChitRow[]): MemberLeaderboardRow[] {
     const personId = chit.person_id;
     const row = map.get(personId) ?? {
       personId,
-      name: chit.person?.name ?? 'Unknown',
+      name: getPrimaryPersonName(chit.person),
       city: chit.person?.city ?? '-',
       activeChitCount: 0,
       portfolioValue: 0,
@@ -762,7 +763,7 @@ function buildMaturityDetails(
       const payout = summarizeChitPayments(byChit.get(chit.id) ?? []).netMaturityPayout;
       return {
         chitId: chit.id,
-        member: chit.person?.name ?? 'Unknown',
+        member: getPrimaryPersonName(chit.person),
         city: chit.person?.city ?? '-',
         scheme: chitTypeLabels[chit.type ?? ChitTypes.ONE_LAKH] ?? chit.type ?? 'Unknown',
         schedule: chit.category?.trim() || 'Unspecified',
@@ -825,7 +826,7 @@ function buildMemberRevenueRows(
     const personId = chit.person_id;
     const row = members.get(personId) ?? {
       personId,
-      member: chit.person?.name ?? 'Unknown',
+      member: getPrimaryPersonName(chit.person),
       city: chit.person?.city ?? '-',
       chits: 0,
       totalPaid: 0,

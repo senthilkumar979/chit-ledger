@@ -18,6 +18,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { loanStatusLabels } from '@/constants/loans'
 import { rateToPercentLabel } from '@/utils/loan-calculations'
 import { buildLoanDetailMetrics } from '@/utils/loan-detail-metrics'
+import { getDisplayPersonLabel } from '@/utils/person-display'
 import { LoanInterestBreakdownCard } from './LoanInterestBreakdownCard'
 import type { LoanWithRepayments } from '@/types/database'
 import type { LucideIcon } from 'lucide-react'
@@ -135,7 +136,7 @@ export function LoanDetailSummary({ loan }: LoanDetailSummaryProps) {
               >
                 <span className="flex items-center gap-1.5 text-lg font-semibold text-primary group-hover:text-accent">
                   <User className="h-4 w-4 shrink-0 text-accent" />
-                  {loan.loan_from.name}
+                  {getDisplayPersonLabel(loan.loan_from)}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1 text-sm text-muted">
                   <MapPin className="h-3.5 w-3.5" />

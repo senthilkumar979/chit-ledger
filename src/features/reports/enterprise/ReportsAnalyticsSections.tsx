@@ -1,5 +1,6 @@
 'use client';
 
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import { ChartPanel } from '@/components/analytics/ChartPanel';
 import { DataTable, type DataTableColumn } from '@/components/analytics/DataTable';
 import type { EnterpriseReportsMetrics, MemberRevenueRow } from '@/utils/enterprise-metrics';
@@ -18,6 +19,7 @@ export function ReportsAnalyticsSections({ metrics }: ReportsAnalyticsSectionsPr
       id: 'member',
       header: 'Member',
       accessor: (r) => `${r.member} ${r.city}`,
+      exportAccessor: (r) => `${r.member} ${getMemberCityInEnglish(r.city)}`,
       render: (r) => (
         <div>
           <p className="font-semibold text-primary">{r.member}</p>

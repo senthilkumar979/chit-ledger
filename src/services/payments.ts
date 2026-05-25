@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { supabaseRequest } from '@/lib/supabase/request';
 import type { Payment } from '@/types/database';
 import type { BulkMarkPaymentFormData, MarkPaymentFormData } from '@/schemas/payment';
+import { matchesPersonNameQuery } from '@/utils/person-display';
 import { computePaymentStatus } from '@/utils/payment-status';
 import {
   buildMonthlyScheduledPayments,
@@ -11,7 +12,7 @@ import {
 } from '@/utils/payment-month';
 
 const PAYMENT_CHIT_SELECT =
-  '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, person:persons(name, city))';
+  '*, chit:chits(id, type, category, start_date, end_date, matured, withdrawal, person:persons(name, name_tamil, city))';
 
 const CHITS_WITH_PAYMENTS_SELECT = `
   id,
@@ -21,7 +22,7 @@ const CHITS_WITH_PAYMENTS_SELECT = `
   end_date,
   matured,
   withdrawal,
-  person:persons(name, city),
+  person:persons(name, name_tamil, city),
   payments(
     id,
     chit_id,
@@ -110,11 +111,9 @@ export async function fetchPayments(filters?: {
 
     let results = (data ?? []) as Payment[];
     if (filters?.search?.trim()) {
-      const q = filters.search.toLowerCase();
-      results = results.filter((p) => {
-        const chit = p as Payment & { chit?: { person?: { name?: string } } };
-        return chit.chit?.person?.name?.toLowerCase().includes(q);
-      });
+      results = results.filter((p) =>
+        matchesPersonNameQuery((p as PaymentWithChit).chit?.person, filters.search as string),
+      );
     }
     return results;
   });

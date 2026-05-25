@@ -71,9 +71,9 @@ export function ReportsView({ canExport }: ReportsViewProps) {
     );
   }
 
-  const exportCollectionsPdf = () => {
+  const exportCollectionsPdf = async () => {
     try {
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Collection history',
         subtitle: monthLabel,
         summaryItems: collectionKpisSummary(filteredCollections),
@@ -96,9 +96,9 @@ export function ReportsView({ canExport }: ReportsViewProps) {
     );
   };
 
-  const exportOutstandingPdf = () => {
+  const exportOutstandingPdf = async () => {
     try {
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Outstanding installments',
         subtitle: 'Pending, partial, and overdue',
         headers: OUTSTANDING_PDF_HEADERS,
@@ -112,9 +112,9 @@ export function ReportsView({ canExport }: ReportsViewProps) {
     }
   };
 
-  const exportMaturedPdf = () => {
+  const exportMaturedPdf = async () => {
     try {
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Matured chits',
         subtitle: 'Members who completed installment 20',
         headers: MATURED_PDF_HEADERS,
@@ -127,9 +127,9 @@ export function ReportsView({ canExport }: ReportsViewProps) {
     }
   };
 
-  const exportWithdrawalsPdf = () => {
+  const exportWithdrawalsPdf = async () => {
     try {
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Awaiting withdrawal',
         subtitle: 'Matured chits pending payout',
         headers: MATURED_PDF_HEADERS,
@@ -142,9 +142,9 @@ export function ReportsView({ canExport }: ReportsViewProps) {
     }
   };
 
-  const exportPortfolioPdf = () => {
+  const exportPortfolioPdf = async () => {
     try {
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Chit portfolio',
         subtitle: 'All chits with collection progress',
         summaryItems: kpisToPdfSummary(data.kpis),

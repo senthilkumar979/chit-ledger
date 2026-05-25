@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDashboardData } from '@/services/dashboard';
 import { DashboardHero } from './DashboardHero';
@@ -30,6 +30,7 @@ import {
   type PaymentStatusFilter,
   type PaymentWithChit,
 } from '@/utils/payment-month';
+import { matchesPersonNameQuery } from '@/utils/person-display';
 
 export function DashboardView() {
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey);
@@ -43,7 +44,8 @@ export function DashboardView() {
     queryFn: fetchDashboardData,
   });
 
-  const payments = (data?.payments ?? []) as PaymentWithChit[];
+  const payments = useMemo(() => (data?.payments ?? []) as PaymentWithChit[], [data?.payments]);
+  const chits = useMemo(() => data?.chits ?? [], [data?.chits]);
   const monthOptions = useMemo(() => buildDashboardMonthOptions(payments), [payments]);
   const monthLabel = formatMonthLabel(monthKey);
   const monthLabelFull =
@@ -53,37 +55,40 @@ export function DashboardView() {
   const cities = useMemo(() => buildCityOptions(dueBase), [dueBase]);
   const categories = useMemo(() => buildCategoryOptions(dueBase), [dueBase]);
 
-  useEffect(() => {
+  const handleMonthChange = useCallback((value: string) => {
+    setMonthKey(value);
     setCityFilter('');
     setCategoryFilter('');
     setStatusFilter('');
     setSearch('');
-  }, [monthKey]);
+  }, []);
 
-  const applyFilters = (list: PaymentWithChit[]) => {
-    let result = filterPaymentsByStatus(list, statusFilter);
-    result = filterPaymentsByCity(result, cityFilter);
-    result = filterPaymentsByCategory(result, categoryFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((p) => p.chit?.person?.name?.toLowerCase().includes(q));
-    }
-    return sortPaymentsByStatus(result);
-  };
+  const applyFilters = useCallback(
+    (list: PaymentWithChit[]) => {
+      let result = filterPaymentsByStatus(list, statusFilter);
+      result = filterPaymentsByCity(result, cityFilter);
+      result = filterPaymentsByCategory(result, categoryFilter);
+      if (search.trim()) {
+        result = result.filter((p) => matchesPersonNameQuery(p.chit?.person, search));
+      }
+      return sortPaymentsByStatus(result);
+    },
+    [statusFilter, cityFilter, categoryFilter, search],
+  );
 
   const collectionRows = useMemo(
     () => applyFilters(filterCalendarMonthCollections(payments, monthKey)),
-    [payments, monthKey, statusFilter, cityFilter, categoryFilter, search],
+    [payments, monthKey, applyFilters],
   );
 
   const dueRows = useMemo(
     () => applyFilters(dueBase),
-    [dueBase, statusFilter, cityFilter, categoryFilter, search],
+    [dueBase, applyFilters],
   );
 
   const kpis = useMemo(
-    () => computeDashboardMonthKpis(payments, data?.chits ?? [], monthKey),
-    [payments, data?.chits, monthKey],
+    () => computeDashboardMonthKpis(payments, chits, monthKey),
+    [payments, chits, monthKey],
   );
 
   const monthBreakdown = useMemo(
@@ -114,7 +119,7 @@ export function DashboardView() {
       <DashboardMonthToolbar
         monthKey={monthKey}
         monthOptions={monthOptions}
-        onMonthChange={setMonthKey}
+        onMonthChange={handleMonthChange}
         search={search}
         onSearchChange={setSearch}
         statusFilter={statusFilter}

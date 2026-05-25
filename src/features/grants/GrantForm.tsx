@@ -11,6 +11,7 @@ import {
 import { DEFAULT_GRANT_INTEREST_RATE } from '@/constants/grants';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
 import { fetchPersons } from '@/services/persons';
+import { getPersonOptionLabel } from '@/utils/person-display';
 import type { Grant } from '@/types/database';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { Input } from '@/components/ui/Input';
@@ -36,7 +37,7 @@ export function GrantForm({
   });
 
   const personOptions =
-    persons?.map((p) => ({ value: p.id, label: `${p.name} · ${p.city}` })) ?? [];
+    persons?.map((p) => ({ value: p.id, label: getPersonOptionLabel(p) })) ?? [];
 
   const {
     register,

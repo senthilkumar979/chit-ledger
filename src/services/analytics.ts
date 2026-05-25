@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { supabaseRequest } from '@/lib/supabase/request';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import { format } from 'date-fns';
+import { getPrimaryPersonName } from '@/utils/person-display';
 import {
   isInstallmentDueInMonth,
   pendingAmount,
@@ -119,17 +120,17 @@ export async function fetchRecentActivity() {
   const supabase = createClient();
   const { data } = await supabase
     .from('payments')
-    .select('installment_no, paid_date, chit:chits(person:persons(name))')
+    .select('installment_no, paid_date, chit:chits(person:persons(name, name_tamil))')
     .eq('status', 'paid')
     .not('paid_date', 'is', null)
     .order('paid_date', { ascending: false })
     .limit(5);
 
   return (data ?? []).map((p, i) => {
-    const row = p as typeof p & { chit?: { person?: { name?: string } } };
+    const row = p as typeof p & { chit?: { person?: { name?: string; name_tamil?: string } } };
     return {
       id: String(i),
-      text: `Payment — ${row.chit?.person?.name ?? 'Member'} #${p.installment_no}`,
+      text: `Payment — ${getPrimaryPersonName(row.chit?.person, 'Member')} #${p.installment_no}`,
       time: p.paid_date ?? '',
     };
   });

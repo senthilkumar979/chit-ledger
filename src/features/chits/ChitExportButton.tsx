@@ -14,10 +14,10 @@ interface ChitExportButtonProps {
 export function ChitExportButton({ chit }: ChitExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  function handleExport() {
+  async function handleExport() {
     try {
       setIsExporting(true);
-      exportChitToPdf(chit);
+      await exportChitToPdf(chit);
       toast.success('PDF downloaded');
     } catch {
       toast.error('Could not generate PDF');
@@ -31,7 +31,7 @@ export function ChitExportButton({ chit }: ChitExportButtonProps) {
       type="button"
       variant="outline"
       size="sm"
-      className="border-border/80 bg-blue-500 text-white"
+      className="border-border/80 bg-blue-500 hover:bg-blue-800 text-white"
       isLoading={isExporting}
       onClick={handleExport}
     >

@@ -11,6 +11,7 @@ import {
 } from '@/utils/chit-payment-summary'
 import { formatInstallmentDueMonth } from '@/utils/installment-due'
 import type { PaymentWithChit } from '@/utils/payment-month'
+import { getDisplayPersonLabel } from '@/utils/person-display'
 import {
   paymentStatusLabel,
   paymentStatusVariant,
@@ -80,7 +81,7 @@ export function PaymentRowCard({
                 href={`/chits/${p.chit_id}`}
                 className="truncate text-base font-semibold text-primary hover:text-accent"
               >
-                {p.chit?.person?.name ?? 'Member'}
+                {getDisplayPersonLabel(p.chit?.person, 'Member')}
               </Link>
               <p className="mt-0.5 text-sm text-muted">
                 #{p.installment_no} · {p.chit?.category ?? 'Unscheduled'} ·{' '}

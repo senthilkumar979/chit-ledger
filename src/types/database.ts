@@ -13,6 +13,7 @@ export interface Profile {
 export interface Person {
   id: string;
   name: string;
+  name_tamil: string | null;
   city: string;
   phone: string | null;
   notes: string | null;

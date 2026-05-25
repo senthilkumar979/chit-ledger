@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileDown, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import { fetchEnterpriseData } from '@/services/enterprise-analytics';
 import { fetchPersons } from '@/services/persons';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton';
 import { exportToCsv } from '@/utils/export-csv';
 import { exportReportTablePdf } from '@/utils/pdf/export-report-pdf';
 import { formatPdfCurrency, pdfTheme, type PdfRgb } from '@/utils/pdf/pdf-theme';
+import { getPersonOptionLabel } from '@/utils/person-display';
 import {
   buildEnterpriseDashboardMetrics,
   buildEnterpriseReportsMetrics,
@@ -70,7 +72,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
   const cities = useMemo(() => buildCityOptions(raw?.payments ?? []), [raw?.payments]);
   const categories = useMemo(() => buildCategoryOptions(raw?.payments ?? []), [raw?.payments]);
   const memberOptions = useMemo(
-    () => persons.map((person) => ({ id: person.id, label: `${person.name} · ${person.city}` })),
+    () => persons.map((person) => ({ id: person.id, label: getPersonOptionLabel(person) })),
     [persons],
   );
 
@@ -78,7 +80,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
     if (!filteredBundle) return;
     const rows = filteredBundle.reports.memberRevenue.map((r) => [
       r.member,
-      r.city,
+      getMemberCityInEnglish(r.city),
       String(r.chits),
       String(r.totalPaid),
       String(r.outstanding),
@@ -94,7 +96,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
     toast.success('CSV downloaded');
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!filteredBundle) return;
     try {
       const totalProfit = filteredBundle.reports.memberRevenue.reduce(
@@ -110,7 +112,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
       const softTint = (color: PdfRgb): PdfRgb =>
         color.map((channel) => Math.round(255 - (255 - channel) * 0.12)) as PdfRgb;
 
-      exportReportTablePdf({
+      await exportReportTablePdf({
         title: 'Member revenue report',
         subtitle: 'Filtered analytics export',
         summaryItems: [
@@ -142,7 +144,7 @@ export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps)
         headers: ['Member', 'City', 'Chits', 'Total paid', 'Outstanding', 'Withdrawn/Matured', 'Profit', 'Variance'],
         rows: filteredBundle.reports.memberRevenue.map((r) => [
           r.member,
-          r.city,
+          getMemberCityInEnglish(r.city),
           String(r.chits),
           formatPdfCurrency(r.totalPaid),
           formatPdfCurrency(r.outstanding),

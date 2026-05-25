@@ -5,6 +5,7 @@ import { MapPin, StickyNote } from 'lucide-react';
 import { ActiveChitsLabel } from './ActiveChitsLabel';
 import { WithdrawnChitsLabel } from './WithdrawnChitsLabel';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display';
 import { cn } from '@/lib/utils';
 import type { PersonWithStats } from '@/services/persons';
 
@@ -34,8 +35,10 @@ export function PersonsTable({ persons, emptyMessage }: PersonsTableProps) {
         </thead>
         <tbody className="divide-y divide-border/60">
           {persons.map((person) => {
-            const initials = getInitials(person.name);
-            const gradient = getAvatarGradient(person.name);
+            const primaryName = getPrimaryPersonName(person);
+            const secondaryName = getSecondaryPersonName(person);
+            const initials = getInitials(primaryName);
+            const gradient = getAvatarGradient(primaryName);
             const hasNotes = Boolean(person.notes?.trim());
 
             return (
@@ -55,7 +58,10 @@ export function PersonsTable({ persons, emptyMessage }: PersonsTableProps) {
                       {initials || '?'}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-primary">{person.name}</p>
+                      <p className="truncate font-semibold text-primary">{primaryName}</p>
+                      {secondaryName ? (
+                        <p className="truncate text-xs text-muted">{secondaryName}</p>
+                      ) : null}
                       {hasNotes ? (
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted">
                           <StickyNote className="h-3 w-3" />

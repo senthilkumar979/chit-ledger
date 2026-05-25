@@ -1,5 +1,6 @@
 'use client'
 
+import { getMemberCityInEnglish } from '@/constants/member-cities'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -43,7 +44,13 @@ export function DashboardAnalyticsSections({
   )
   const maturityColumns: DataTableColumn<MaturityDetailRow>[] = [
     { id: 'member', header: 'Member', accessor: (row) => row.member },
-    { id: 'city', header: 'City', accessor: (row) => row.city, hiddenOnMobile: true },
+    {
+      id: 'city',
+      header: 'City',
+      accessor: (row) => row.city,
+      exportAccessor: (row) => getMemberCityInEnglish(row.city),
+      hiddenOnMobile: true,
+    },
     { id: 'scheme', header: 'Scheme', accessor: (row) => row.scheme },
     { id: 'schedule', header: 'Schedule', accessor: (row) => row.schedule, hiddenOnMobile: true },
     {

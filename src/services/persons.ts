@@ -32,7 +32,7 @@ export async function fetchPersonsWithStats(search?: string): Promise<PersonWith
 
     if (search?.trim()) {
       query = query.or(
-        `name.ilike.%${search}%,city.ilike.%${search}%,phone.ilike.%${search}%`,
+        `name.ilike.%${search}%,name_tamil.ilike.%${search}%,city.ilike.%${search}%,phone.ilike.%${search}%`,
       );
     }
 
@@ -58,6 +58,7 @@ export async function createPerson(input: PersonFormData): Promise<Person> {
       .from('persons')
       .insert({
         name: input.name,
+        name_tamil: input.name_tamil,
         city: input.city,
         phone: input.phone || null,
         notes: input.notes || null,
@@ -77,6 +78,7 @@ export async function updatePerson(id: string, input: PersonFormData): Promise<P
       .from('persons')
       .update({
         name: input.name,
+        name_tamil: input.name_tamil,
         city: input.city,
         phone: input.phone || null,
         notes: input.notes || null,

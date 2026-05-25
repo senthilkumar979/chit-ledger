@@ -6,6 +6,7 @@ import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels';
 import { INSTALLMENT_COUNT } from '@/constants/chit-config';
 import { ChitStatusPill } from './ChitStatusPill';
 import { countPaidInstallments, getChitLifecycleStatus, getChitWithdrawalDateLabel } from './chit-status';
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import { cn, formatDate } from '@/lib/utils';
 import type { Chit } from '@/types/database';
@@ -38,7 +39,8 @@ export function ChitsTable({ chits, emptyMessage }: ChitsTableProps) {
         </thead>
         <tbody className="divide-y divide-border/60">
           {chits.map((chit) => {
-            const personName = chit.person?.name ?? 'Unknown';
+            const personName = getPrimaryPersonName(chit.person);
+            const secondaryName = getSecondaryPersonName(chit.person);
             const initials = getInitials(personName);
             const avatarGradient = getAvatarGradient(personName);
             const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary';
@@ -63,6 +65,9 @@ export function ChitsTable({ chits, emptyMessage }: ChitsTableProps) {
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-primary">{personName}</p>
+                      {secondaryName ? (
+                        <p className="truncate text-xs text-muted">{secondaryName}</p>
+                      ) : null}
                       {chit.person?.city ? (
                         <span className="inline-flex items-center gap-1 text-xs text-muted">
                           <MapPin className="h-3 w-3 text-accent/70" />

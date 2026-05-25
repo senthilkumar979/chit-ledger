@@ -17,6 +17,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { loanStatusLabels } from '@/constants/loans';
 import { calculateLoanInterestSoFar } from '@/utils/loan-balance';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import type { Loan, LoanRepayment } from '@/types/database';
 
 interface LoansTableProps {
@@ -235,7 +236,7 @@ function LoanFromCell({ loan, compact }: { loan: Loan; compact?: boolean }) {
     <div className={cn('min-w-0', compact ? 'text-xs' : 'text-sm')}>
       <p className="flex items-center gap-1.5 font-medium text-primary">
         <User className="h-3.5 w-3.5 shrink-0 text-accent/80" />
-        <span className="truncate">{loan.loan_from.name}</span>
+        <span className="truncate">{getDisplayPersonLabel(loan.loan_from)}</span>
       </p>
       <p className="mt-0.5 flex items-center gap-1 text-muted">
         <MapPin className="h-3 w-3 shrink-0" />

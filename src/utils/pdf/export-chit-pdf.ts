@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { INSTALLMENT_COUNT } from '@/constants/chit-config';
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import type { ChitWithPayments } from '@/types/database';
 import {
   resolveChitPaymentSummary,
@@ -40,7 +41,7 @@ export function exportChitToPdf(chit: ChitWithPayments): void {
   y = drawScheduleTable(doc, chit, y);
 
   if (chit.matured || chit.withdrawal) {
-    y = drawMaturitySection(doc, chit, summary, y);
+    drawMaturitySection(doc, chit, summary, y);
   }
 
   applyFooters(doc, generatedAt);
@@ -102,7 +103,7 @@ function drawInfoColumns(doc: jsPDF, chit: ChitWithPayments, startY: number): nu
   doc.setTextColor(...pdfTheme.muted);
   const status = chit.withdrawal ? 'Withdrawn' : chit.matured ? 'Matured' : 'Active';
   const leftLines = [
-    `City: ${sanitizePdfText(chit.person?.city ?? PDF_EMPTY)}`,
+    `City: ${sanitizePdfText(getMemberCityInEnglish(chit.person?.city) || PDF_EMPTY)}`,
     `Phone: ${sanitizePdfText(chit.person?.phone ?? PDF_EMPTY)}`,
     chit.person?.notes
       ? `Notes: ${sanitizePdfText(truncate(chit.person.notes, 60))}`

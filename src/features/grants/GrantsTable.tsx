@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { buildGrantDisplayMetrics } from '@/utils/grant-metrics';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import type { Grant } from '@/types/database';
 
 interface GrantsTableProps {
@@ -159,7 +160,7 @@ function GrantToCell({ grant, compact }: { grant: Grant; compact?: boolean }) {
     <div className={cn('min-w-0', compact ? 'text-xs' : 'text-sm')}>
       <p className="flex items-center gap-1.5 font-medium text-primary">
         <User className="h-3.5 w-3.5 shrink-0 text-accent/80" />
-        <span className="truncate">{grant.grant_to.name}</span>
+        <span className="truncate">{getDisplayPersonLabel(grant.grant_to)}</span>
       </p>
       <p className="mt-0.5 flex items-center gap-1 text-muted">
         <MapPin className="h-3 w-3 shrink-0" />

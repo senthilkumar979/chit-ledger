@@ -5,6 +5,7 @@ import { ArrowUpRight, MapPin, Phone, StickyNote } from 'lucide-react';
 import { ActiveChitsLabel } from './ActiveChitsLabel';
 import { WithdrawnChitsLabel } from './WithdrawnChitsLabel';
 import { cn } from '@/lib/utils';
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import type { PersonWithStats } from '@/services/persons';
 
@@ -15,8 +16,10 @@ interface PersonCardProps {
 }
 
 export function PersonCard({ person, index = 0, variant = 'grid' }: PersonCardProps) {
-  const initials = getInitials(person.name);
-  const gradient = getAvatarGradient(person.name);
+  const primaryName = getPrimaryPersonName(person);
+  const secondaryName = getSecondaryPersonName(person);
+  const initials = getInitials(primaryName);
+  const gradient = getAvatarGradient(primaryName);
   const hasNotes = Boolean(person.notes?.trim());
 
   return (
@@ -57,9 +60,14 @@ export function PersonCard({ person, index = 0, variant = 'grid' }: PersonCardPr
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-base font-semibold tracking-tight text-primary transition-colors group-hover:text-accent">
-              {person.name}
-            </h3>
+            <div className="min-w-0">
+              <h3 className="truncate text-base font-semibold tracking-tight text-primary transition-colors group-hover:text-accent">
+                {primaryName}
+              </h3>
+              {secondaryName ? (
+                <p className="truncate text-xs text-muted">{secondaryName}</p>
+              ) : null}
+            </div>
             <ArrowUpRight
               className={cn(
                 'h-4 w-4 shrink-0 text-muted opacity-0 transition-all duration-300',

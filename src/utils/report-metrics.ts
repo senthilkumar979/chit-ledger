@@ -6,6 +6,7 @@ import {
   hasRecordedPayment,
   summarizeChitPayments,
 } from '@/utils/chit-payment-summary';
+import { getPrimaryPersonName } from '@/utils/person-display';
 import { paymentStatusLabel } from '@/utils/payment-status';
 import type { PaymentStatus } from '@/types/database';
 import type { PaymentWithChit } from '@/utils/payment-month';
@@ -18,7 +19,7 @@ export interface ReportsChitRow {
   category?: string;
   end_date?: string | null;
   withdrawal_date?: string | null;
-  person?: { name?: string; city?: string };
+  person?: { name?: string; name_tamil?: string; city?: string };
 }
 
 export interface ReportsKpis {
@@ -149,7 +150,7 @@ export function buildReportsBundle(
       collections.push({
         id: payment.id,
         chitId: payment.chit_id,
-        memberName: payment.chit?.person?.name ?? 'Unknown',
+        memberName: getPrimaryPersonName(payment.chit?.person),
         city: payment.chit?.person?.city ?? '-',
         scheme: schemeLabel(payment.chit?.type),
         schedule: payment.chit?.category ?? '-',
@@ -173,7 +174,7 @@ export function buildReportsBundle(
       outstanding.push({
         id: payment.id,
         chitId: payment.chit_id,
-        memberName: payment.chit?.person?.name ?? 'Unknown',
+        memberName: getPrimaryPersonName(payment.chit?.person),
         city: payment.chit?.person?.city ?? '-',
         scheme: schemeLabel(payment.chit?.type),
         schedule: payment.chit?.category ?? '-',
@@ -217,7 +218,7 @@ export function buildReportsBundle(
 
     portfolio.push({
       id: chit.id,
-      memberName: person?.name ?? 'Unknown',
+      memberName: getPrimaryPersonName(person),
       city: person?.city ?? '-',
       scheme: schemeLabel(type),
       schedule: category,
@@ -233,7 +234,7 @@ export function buildReportsBundle(
     const row: MaturedReportRow = {
       id: chit.id,
       chitId: chit.id,
-      memberName: person?.name ?? 'Unknown',
+      memberName: getPrimaryPersonName(person),
       city: person?.city ?? '-',
       scheme: schemeLabel(type),
       schedule: category,

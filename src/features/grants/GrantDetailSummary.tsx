@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { buildGrantDisplayMetrics } from '@/utils/grant-metrics';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import { LoanInterestBreakdownCard } from '@/features/loans/LoanInterestBreakdownCard';
 import type { Grant } from '@/types/database';
 import type { LucideIcon } from 'lucide-react';
@@ -86,7 +87,7 @@ export function GrantDetailSummary({ grant }: GrantDetailSummaryProps) {
             <Link href={`/persons/${grant.grant_to_person_id}`} className="group min-w-0">
               <span className="flex items-center gap-1.5 text-lg font-semibold text-primary group-hover:text-accent">
                 <User className="h-4 w-4 text-accent" />
-                {grant.grant_to.name}
+                {getDisplayPersonLabel(grant.grant_to)}
               </span>
               <span className="mt-0.5 flex items-center gap-1 text-sm text-muted">
                 <MapPin className="h-3.5 w-3.5" />

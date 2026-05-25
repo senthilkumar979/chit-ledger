@@ -7,6 +7,7 @@ import { takeLoanSchema, type TakeLoanFormData } from '@/schemas/loan';
 import { DEFAULT_LOAN_INTEREST_RATE } from '@/constants/loans';
 import { rateToPercentLabel } from '@/utils/loan-calculations';
 import { fetchPersons } from '@/services/persons';
+import { getPersonOptionLabel } from '@/utils/person-display';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -24,7 +25,7 @@ export function TakeLoanForm({ onSubmit, onCancel }: TakeLoanFormProps) {
   });
 
   const personOptions =
-    persons?.map((p) => ({ value: p.id, label: `${p.name} · ${p.city}` })) ?? [];
+    persons?.map((p) => ({ value: p.id, label: getPersonOptionLabel(p) })) ?? [];
 
   const {
     register,

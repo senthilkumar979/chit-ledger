@@ -9,6 +9,7 @@ import { ChitTypes } from '@/constants/chit-config';
 import { chitTypeFormOptions, chitTypeLabels } from '@/constants/chit-labels';
 import { ChitCategories } from '@/constants/chit-categories';
 import { fetchPersons } from '@/services/persons';
+import { getPersonOptionLabel } from '@/utils/person-display';
 import { chitEndDateFromStart } from '@/utils/installment-due';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -86,7 +87,7 @@ export function ChitForm({
   }, [lockedPersonId, setValue]);
 
   const personOptions =
-    persons?.map((p) => ({ value: p.id, label: `${p.name} · ${p.city}` })) ?? [];
+    persons?.map((p) => ({ value: p.id, label: getPersonOptionLabel(p) })) ?? [];
 
   const lockedPerson = lockedPersonId
     ? persons?.find((p) => p.id === lockedPersonId)
@@ -100,7 +101,7 @@ export function ChitForm({
           <div className="rounded-lg border border-border bg-surface/80 px-3 py-3">
             <p className="text-xs font-medium text-muted">Member</p>
             <p className="mt-1 text-sm font-semibold text-primary">
-              {lockedPerson ? `${lockedPerson.name} · ${lockedPerson.city}` : 'Loading…'}
+              {lockedPerson ? getPersonOptionLabel(lockedPerson) : 'Loading…'}
             </p>
           </div>
         </>

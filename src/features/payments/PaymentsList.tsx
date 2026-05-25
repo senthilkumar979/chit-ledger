@@ -15,6 +15,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { getDisplayPersonLabel } from '@/utils/person-display';
 import {
   paymentStatusLabel,
   paymentStatusVariant,
@@ -28,7 +29,7 @@ interface PaymentsListProps {
 }
 
 type PaymentWithChit = Payment & {
-  chit?: { id: string; person?: { name?: string }; category?: string };
+  chit?: { id: string; person?: { name?: string; name_tamil?: string }; category?: string };
 };
 
 const statusFilterOptions = [
@@ -92,7 +93,7 @@ export function PaymentsList({ canWrite }: PaymentsListProps) {
             <Card key={p.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <Link href={`/chits/${p.chit_id}`} className="font-semibold text-primary hover:text-accent">
-                  {p.chit?.person?.name ?? 'Member'} — #{p.installment_no}
+                  {getDisplayPersonLabel(p.chit?.person, 'Member')} — #{p.installment_no}
                 </Link>
                 <p className="text-sm text-muted">{formatCurrency(Number(p.expected_amount))}</p>
               </div>

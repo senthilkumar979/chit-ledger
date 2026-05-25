@@ -2,6 +2,7 @@
 
 import { MapPin, Phone, StickyNote, Landmark } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display';
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar';
 import type { Person } from '@/types/database';
 
@@ -11,8 +12,10 @@ interface PersonDetailHeroProps {
 }
 
 export function PersonDetailHero({ person, chitCount }: PersonDetailHeroProps) {
-  const initials = getInitials(person.name);
-  const gradient = getAvatarGradient(person.name);
+  const primaryName = getPrimaryPersonName(person);
+  const secondaryName = getSecondaryPersonName(person);
+  const initials = getInitials(primaryName);
+  const gradient = getAvatarGradient(primaryName);
   const hasNotes = Boolean(person.notes?.trim());
 
   return (
@@ -35,7 +38,10 @@ export function PersonDetailHero({ person, chitCount }: PersonDetailHeroProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
               Member profile
             </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{person.name}</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{primaryName}</h1>
+            {secondaryName ? (
+              <p className="mt-1 text-base font-medium text-white/70 sm:text-lg">{secondaryName}</p>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/75">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-accent" />

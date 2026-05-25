@@ -1,3 +1,4 @@
+import { getMemberCityInEnglish } from '@/constants/member-cities';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getRecordedAmount, getInstallmentVariance } from '@/utils/chit-payment-summary';
@@ -50,7 +51,7 @@ function buildFilterSummary(filters?: CollectionsPdfFilters): string | null {
   const parts: string[] = [];
   if (filters.search?.trim()) parts.push(`Search: ${filters.search.trim()}`);
   if (filters.status) parts.push(`Status: ${filters.status}`);
-  if (filters.city) parts.push(`City: ${filters.city}`);
+  if (filters.city) parts.push(`City: ${getMemberCityInEnglish(filters.city)}`);
   if (filters.category) parts.push(`Schedule: ${filters.category}`);
   return parts.length ? parts.join(' | ') : null;
 }
@@ -177,7 +178,7 @@ function drawCollectionsTable(doc: jsPDF, rows: PaymentWithChit[], startY: numbe
       String(p.installment_no),
       p.chit?.type ? pdfChitTypeLabel(p.chit.type) : PDF_EMPTY,
       sanitizePdfText(p.chit?.category ?? PDF_EMPTY),
-      sanitizePdfText(p.chit?.person?.city ?? PDF_EMPTY),
+      sanitizePdfText(getMemberCityInEnglish(p.chit?.person?.city) || PDF_EMPTY),
       formatPdfDate(p.paid_date),
       formatPdfCurrency(Number(p.expected_amount)),
       formatPdfCurrency(collected),

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels'
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display'
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar'
 import { ChitDetailHeroProgressPanel } from './ChitDetailHeroProgressPanel'
 import { chitEndDateFromStart } from '@/utils/installment-due'
@@ -25,7 +26,8 @@ export function ChitDetailHero({
   onRecordWithdrawal,
   footerActions,
 }: ChitDetailHeroProps) {
-  const personName = chit.person?.name ?? 'Unknown'
+  const personName = getPrimaryPersonName(chit.person)
+  const secondaryName = getSecondaryPersonName(chit.person)
   const initials = getInitials(personName)
   const avatarGradient = getAvatarGradient(personName)
   const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary'
@@ -92,6 +94,9 @@ export function ChitDetailHero({
                         {personName}
                       </Link>
                     </h1>
+                    {secondaryName ? (
+                      <p className="mt-1 text-sm text-center md:text-start text-muted">{secondaryName}</p>
+                    ) : null}
                     <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-center md:text-start text-muted">
                       Collection schedule
                     </p>

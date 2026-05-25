@@ -1,21 +1,21 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { FileDown } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { exportCollectionsToPdf } from '@/utils/pdf/export-collections-pdf';
-import type { DashboardMonthKpis } from '@/utils/dashboard-metrics';
-import type { PaymentWithChit } from '@/utils/payment-month';
-import { toast } from 'sonner';
+import { useState } from 'react'
+import { FileDown } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { exportCollectionsToPdf } from '@/utils/pdf/export-collections-pdf'
+import type { DashboardMonthKpis } from '@/utils/dashboard-metrics'
+import type { PaymentWithChit } from '@/utils/payment-month'
+import { toast } from 'sonner'
 
 interface CollectionsExportButtonProps {
-  monthLabel: string;
-  rows: PaymentWithChit[];
-  kpis: DashboardMonthKpis;
-  search: string;
-  statusFilter: string;
-  cityFilter: string;
-  categoryFilter: string;
+  monthLabel: string
+  rows: PaymentWithChit[]
+  kpis: DashboardMonthKpis
+  search: string
+  statusFilter: string
+  cityFilter: string
+  categoryFilter: string
 }
 
 export function CollectionsExportButton({
@@ -27,12 +27,12 @@ export function CollectionsExportButton({
   cityFilter,
   categoryFilter,
 }: CollectionsExportButtonProps) {
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false)
 
-  function handleExport() {
+  async function handleExport() {
     try {
-      setIsExporting(true);
-      exportCollectionsToPdf({
+      setIsExporting(true)
+      await exportCollectionsToPdf({
         monthLabel,
         rows,
         kpis: {
@@ -48,12 +48,12 @@ export function CollectionsExportButton({
           city: cityFilter || undefined,
           category: categoryFilter || undefined,
         },
-      });
-      toast.success('Collections PDF downloaded');
+      })
+      toast.success('Collections PDF downloaded')
     } catch {
-      toast.error('Could not generate PDF');
+      toast.error('Could not generate PDF')
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
   }
 
@@ -62,12 +62,12 @@ export function CollectionsExportButton({
       type="button"
       variant="outline"
       size="sm"
-      className="shrink-0 border-border/80 bg-card"
+      className="shrink-0 border-border/80 bg-card hover:bg-surface"
       isLoading={isExporting}
       onClick={handleExport}
     >
       <FileDown className="h-4 w-4" />
       Export PDF
     </Button>
-  );
+  )
 }

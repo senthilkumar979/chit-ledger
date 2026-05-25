@@ -5,6 +5,7 @@ import { ArrowUpRight, Calendar, Landmark, MapPin } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { chitTypeLabels, chitTypeStyles } from '@/constants/chit-labels'
 import { INSTALLMENT_COUNT } from '@/constants/chit-config'
+import { getPrimaryPersonName, getSecondaryPersonName } from '@/utils/person-display'
 import { ChitStatusPill } from './ChitStatusPill'
 import { countPaidInstallments, getChitLifecycleStatus, getChitWithdrawalDateLabel } from './chit-status'
 import { getAvatarGradient, getInitials } from '@/utils/person-avatar'
@@ -17,7 +18,8 @@ interface ChitCardProps {
 }
 
 export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
-  const personName = chit.person?.name ?? 'Unknown'
+  const personName = getPrimaryPersonName(chit.person)
+  const secondaryName = getSecondaryPersonName(chit.person)
   const initials = getInitials(personName)
   const avatarGradient = getAvatarGradient(personName)
   const typeGradient = chitTypeStyles[chit.type] ?? 'from-primary to-secondary'
@@ -82,6 +84,9 @@ export function ChitCard({ chit, index = 0, variant = 'grid' }: ChitCardProps) {
               <h3 className="truncate font-semibold text-primary group-hover:text-accent transition-colors">
                 {personName}
               </h3>
+              {secondaryName ? (
+                <p className="mt-0.5 text-xs text-muted">{secondaryName}</p>
+              ) : null}
               <p className="mt-0.5 text-sm text-muted">{chit.category}</p>
             </div>
             <ArrowUpRight className="h-4 w-4 shrink-0 text-muted opacity-0 transition-all group-hover:opacity-100" />

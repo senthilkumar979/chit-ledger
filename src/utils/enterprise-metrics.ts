@@ -11,8 +11,14 @@ import { summarizeLoanBalance } from '@/utils/loan-balance';
 import { roundMoney } from '@/utils/loan-calculations';
 import { computeYearProfitLoss } from '@/utils/profit-loss-metrics';
 import type { Loan, LoanRepayment, PaymentStatus } from '@/types/database';
-import type { PaymentWithChit } from '@/utils/payment-month';
-import { getCurrentMonthKey, parseMonthKey, toMonthKey } from '@/utils/payment-month';
+import type { ChitWithSchedulePayments, PaymentWithChit } from '@/utils/payment-month';
+import {
+  buildMonthlyScheduledPayments,
+  computePaymentsMonthStats,
+  getCurrentMonthKey,
+  parseMonthKey,
+  toMonthKey,
+} from '@/utils/payment-month';
 
 export interface EnterpriseChitRow {
   id: string;
@@ -25,6 +31,7 @@ export interface EnterpriseChitRow {
   withdrawal: boolean;
   withdrawal_date?: string | null;
   person?: { name?: string; city?: string };
+  payments?: PaymentWithChit[];
 }
 
 export interface EnterpriseBundleInput {
@@ -403,18 +410,31 @@ export function buildEnterpriseDashboardMetrics(
     value: round(m.collections - m.withdrawals - m.loanRepayments),
   }));
 
-  const funnelExpected = payments
-    .filter((p) => isPaymentDueInSelectedMonth(p, monthKey))
-    .reduce((s, p) => s + Number(p.expected_amount), 0);
-  const funnelCollected = payments
-    .filter((p) => isPaymentDueInSelectedMonth(p, monthKey) && hasRecordedPayment(p))
-    .reduce((s, p) => s + getRecordedAmount(p), 0);
+  const scheduleChits: ChitWithSchedulePayments[] = chits.map((chit) => ({
+    ...chit,
+    start_date: chit.start_date ?? null,
+    end_date: chit.end_date ?? null,
+    payments: chit.payments?.map((payment) => ({
+      ...payment,
+      chit: undefined,
+    })),
+  }));
+
+  const selectedMonthSchedule = buildMonthlyScheduledPayments(scheduleChits, monthKey);
+  const selectedMonthStats = computePaymentsMonthStats(selectedMonthSchedule.scheduled);
+  const funnelExpected = selectedMonthSchedule.scheduled.reduce(
+    (sum, payment) => sum + Number(payment.expected_amount),
+    0,
+  );
+  const funnelCollected = selectedMonthStats.collectedAmount;
 
   const collectionTrend: CollectionTrendMonth[] = monthKeys12.map((mk) => {
-    const expected = payments
-      .filter((p) => isPaymentDueInSelectedMonth(p, mk))
-      .reduce((s, p) => s + Number(p.expected_amount), 0);
-    const actual = collectedInMonth(payments, mk);
+    const monthSchedule = buildMonthlyScheduledPayments(scheduleChits, mk);
+    const expected = monthSchedule.scheduled.reduce(
+      (sum, payment) => sum + Number(payment.expected_amount),
+      0,
+    );
+    const actual = computePaymentsMonthStats(monthSchedule.scheduled).collectedAmount;
     return {
       monthKey: mk,
       name: format(new Date(`${mk}-01`), 'MMM yy'),
@@ -584,14 +604,6 @@ function buildGeographicChits(chits: EnterpriseChitRow[]): GeographicChitRow[] {
   return [...map.values()].sort((a, b) => b.total - a.total).slice(0, 12);
 }
 
-function isPaymentDueInSelectedMonth(payment: PaymentWithChit, monthKey: string): boolean {
-  const start = payment.chit?.start_date;
-  if (!start) return false;
-  const { year, monthIndex } = parseMonthKey(monthKey);
-  const due = getInstallmentDueDate(start, payment.installment_no);
-  return due.getFullYear() === year && due.getMonth() === monthIndex;
-}
-
 interface MemberAgg {
   personId: string;
   name: string;
@@ -759,10 +771,8 @@ function buildAlerts(
 export function buildEnterpriseReportsMetrics(input: EnterpriseBundleInput): EnterpriseReportsMetrics {
   const { payments, chits, loans, repayments } = input;
   const monthKeys12 = lastNMonthKeys(12);
-  const year = new Date().getFullYear();
 
   const monthlyPnL: MonthlyPnLRow[] = monthKeys12.map((mk) => {
-    const y = Number(mk.slice(0, 4));
     const revenue = collectedInMonth(payments, mk);
     const loanInterest = loans.reduce((s, loan) => {
       const paid = repayments

@@ -20,7 +20,7 @@ export function ChartPanel({
   action,
   children,
   className,
-  height = '',
+  height = 'h-72',
   onClick,
   active,
 }: ChartPanelProps) {

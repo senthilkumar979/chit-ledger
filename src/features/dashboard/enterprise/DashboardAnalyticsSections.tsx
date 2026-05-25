@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Bar,
   BarChart,
@@ -14,37 +14,39 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import { ChartPanel } from '@/components/analytics/ChartPanel';
-import { CashFlowComboChart } from '@/components/charts/enterprise/CashFlowComboChart';
-import { formatCurrency, cn } from '@/lib/utils';
+} from 'recharts'
+import { ChartPanel } from '@/components/analytics/ChartPanel'
+import { formatCurrency, cn } from '@/lib/utils'
+import { formatMonthLabel, getCurrentMonthKey } from '@/utils/payment-month'
 import type {
   EnterpriseDashboardMetrics,
   MemberLeaderboardRow,
-} from '@/utils/enterprise-metrics';
-import { DashboardInsightCards } from './DashboardInsightCards';
+} from '@/utils/enterprise-metrics'
+import { DashboardInsightCards } from './DashboardInsightCards'
 
 interface DashboardAnalyticsSectionsProps {
-  metrics: EnterpriseDashboardMetrics;
-  selectedMonthKey?: string;
-  onMonthSelect: (monthKey: string) => void;
+  metrics: EnterpriseDashboardMetrics
+  selectedMonthKey?: string
+  onMonthSelect: (monthKey: string) => void
 }
 
 export function DashboardAnalyticsSections({
   metrics,
   selectedMonthKey,
-  onMonthSelect,
 }: DashboardAnalyticsSectionsProps) {
-  const router = useRouter();
+  const router = useRouter()
+  const selectedMonthLabel = formatMonthLabel(
+    selectedMonthKey ?? getCurrentMonthKey(),
+  )
   const funnelData = [
     { stage: 'Expected', value: metrics.funnel.expected },
     { stage: 'Collected', value: metrics.funnel.collected },
     { stage: 'Shortfall', value: metrics.funnel.shortfall },
-  ];
+  ]
 
   return (
     <div className="space-y-8">
-      <ChartPanel
+      {/* <ChartPanel
         title="Cash flow intelligence"
         description="Where is money coming and going? Tap a month to filter widgets."
         height="h-80"
@@ -54,14 +56,20 @@ export function DashboardAnalyticsSections({
           activeMonthKey={selectedMonthKey}
           onMonthSelect={onMonthSelect}
         />
-      </ChartPanel>
+      </ChartPanel> */}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <ChartPanel title="Collection efficiency" description="How efficient are collections?">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartPanel
+          title="Collection efficiency"
+          description={`How efficient are collections for ${selectedMonthLabel}?`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={funnelData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
+              <XAxis
+                type="number"
+                tickFormatter={(v) => `₹${Number(v) / 1000}k`}
+              />
               <YAxis type="category" dataKey="stage" width={72} />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
               <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -73,18 +81,10 @@ export function DashboardAnalyticsSections({
           </ResponsiveContainer>
         </ChartPanel>
 
-        <ChartPanel title="Installment aging" description="What debts need action?">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={metrics.aging} layout="vertical">
-              <XAxis type="number" hide />
-              <YAxis type="category" dataKey="label" width={72} tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Bar dataKey="amount" fill="#2563EB" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-
-        <ChartPanel title="Collection trend" description="Are we consistently under-collecting?">
+        <ChartPanel
+          title="Collection trend"
+          description="Are we consistently under-collecting?"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={metrics.collectionTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -92,71 +92,120 @@ export function DashboardAnalyticsSections({
               <YAxis tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
               <Legend />
-              <Line dataKey="expected" stroke="#94A3B8" strokeDasharray="4 4" dot={false} />
-              <Line dataKey="actual" stroke="#16A34A" strokeWidth={2} dot={false} />
+              <Line
+                dataKey="expected"
+                stroke="#94A3B8"
+                strokeDasharray="4 4"
+                dot={false}
+              />
+              <Line
+                dataKey="actual"
+                stroke="#16A34A"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartPanel>
       </div>
 
-      <ChartPanel title="Top members by revenue" description="Who are our most valuable members?" height="h-72">
+      <ChartPanel
+        title="Top members by revenue"
+        description="Who are our most valuable members?"
+        height="h-72"
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={metrics.topMembers}
             layout="vertical"
             onClick={(s) => {
-              const payload = s as { activePayload?: { payload?: MemberLeaderboardRow }[] } | null;
-              const id = payload?.activePayload?.[0]?.payload?.personId;
-              if (id) router.push(`/persons/${id}`);
+              const payload = s as {
+                activePayload?: { payload?: MemberLeaderboardRow }[]
+              } | null
+              const id = payload?.activePayload?.[0]?.payload?.personId
+              if (id) router.push(`/persons/${id}`)
             }}
           >
-            <XAxis type="number" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
-            <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 10 }} />
+            <XAxis
+              type="number"
+              tickFormatter={(v) => `₹${Number(v) / 1000}k`}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={88}
+              tick={{ fontSize: 10 }}
+            />
             <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-            <Bar dataKey="totalPaid" fill="#0F172A" radius={[0, 4, 4, 0]} className="cursor-pointer" />
+            <Bar
+              dataKey="totalPaid"
+              fill="#0F172A"
+              radius={[0, 4, 4, 0]}
+              className="cursor-pointer"
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
 
       <DashboardInsightCards metrics={metrics} />
 
-      <ChartPanel title="Maturity pipeline" description="What payouts are approaching?" height="h-72">
+      <ChartPanel
+        title="Maturity pipeline"
+        description="What payouts are approaching?"
+        height="h-72"
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={metrics.maturityPipeline}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
             <YAxis yAxisId="left" tickFormatter={(v) => String(v)} />
-            <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `₹${Number(v) / 1000}k`} />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tickFormatter={(v) => `₹${Number(v) / 1000}k`}
+            />
             <Tooltip />
-            <Bar yAxisId="left" dataKey="count" name="Chits" fill="#0F172A" radius={[4, 4, 0, 0]} />
-            <Bar yAxisId="right" dataKey="liability" name="Liability" fill="#DC2626" radius={[4, 4, 0, 0]} />
+            <Bar
+              yAxisId="left"
+              dataKey="count"
+              name="Chits"
+              fill="#0F172A"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              yAxisId="right"
+              dataKey="liability"
+              name="Liability"
+              fill="#DC2626"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
 
       <AlertsPanel alerts={metrics.alerts} />
     </div>
-  );
+  )
 }
 
 function AlertsPanel({
   alerts,
 }: {
-  alerts: EnterpriseDashboardMetrics['alerts'];
+  alerts: EnterpriseDashboardMetrics['alerts']
 }) {
   if (!alerts.length) {
     return (
       <section className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted">
         No priority alerts today.
       </section>
-    );
+    )
   }
 
   const severityStyle = {
     critical: 'border-danger/30 bg-danger/5',
     warning: 'border-warning/30 bg-warning/5',
     info: 'border-border bg-surface/40',
-  };
+  }
 
   return (
     <section className="space-y-3">
@@ -177,7 +226,7 @@ function AlertsPanel({
             </div>
             <Link
               href={alert.href}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
             >
               {alert.actionLabel}
             </Link>
@@ -185,5 +234,5 @@ function AlertsPanel({
         ))}
       </div>
     </section>
-  );
+  )
 }

@@ -1,6 +1,16 @@
 import type { Chit, Payment } from '@/types/database';
 import { getChitSchedule, type ChitType } from '@/constants/chit-config';
 
+export type ChitPaymentSummaryRow = Pick<
+  Payment,
+  | 'status'
+  | 'installment_no'
+  | 'expected_amount'
+  | 'amount_paid'
+  | 'advance_amount_paid'
+  | 'maturity_amount'
+>;
+
 export type ChitWithdrawalSnapshot = Pick<
   Chit,
   'withdrawal' | 'withdrawal_net_amount' | 'collection_variance'
@@ -28,7 +38,7 @@ export function getMaturityBaseFromWithdrawal(
  * the withdrawal payout — not withdrawal_date.
  */
 export function findWithdrawalInstallmentNo(
-  payments: Payment[],
+  payments: ChitPaymentSummaryRow[],
   withdrawalNetAmount: number | null | undefined,
   collectionVariance: number | null | undefined,
   chitType?: ChitType | null,
@@ -53,7 +63,7 @@ export function findWithdrawalInstallmentNo(
   return fromNet?.installment_no ?? null;
 }
 
-export function getRecordedAmount(payment: Payment): number {
+export function getRecordedAmount(payment: ChitPaymentSummaryRow): number {
   const amount = payment.amount_paid != null ? Number(payment.amount_paid) : null;
   const advance =
     payment.advance_amount_paid != null ? Number(payment.advance_amount_paid) : null;
@@ -63,18 +73,20 @@ export function getRecordedAmount(payment: Payment): number {
   return 0;
 }
 
-export function hasRecordedPayment(payment: Payment): boolean {
+export function hasRecordedPayment(payment: Pick<Payment, 'status'>): boolean {
   return payment.status === 'paid' || payment.status === 'partial';
 }
 
-export function getInstallmentVariance(payment: Payment): number {
+export function getInstallmentVariance(payment: ChitPaymentSummaryRow): number {
   if (!hasRecordedPayment(payment)) return 0;
   return getRecordedAmount(payment) - Number(payment.expected_amount);
 }
 
 /** Latest installment with a recorded collection — drives maturity ladder at withdrawal. */
-export function getHighestRecordedInstallment(payments: Payment[]): Payment | null {
-  let highest: Payment | null = null;
+export function getHighestRecordedInstallment(
+  payments: ChitPaymentSummaryRow[],
+): ChitPaymentSummaryRow | null {
+  let highest: ChitPaymentSummaryRow | null = null;
 
   for (const payment of payments) {
     if (!hasRecordedPayment(payment)) continue;
@@ -104,7 +116,9 @@ export interface ChitPaymentSummary {
   usesRecordedWithdrawal: boolean;
 }
 
-export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
+export function summarizeChitPayments(
+  payments: ChitPaymentSummaryRow[],
+): ChitPaymentSummary {
   let totalCollected = 0;
   let totalExpectedOnRecorded = 0;
   let outstanding = 0;
@@ -159,7 +173,7 @@ export function summarizeChitPayments(payments: Payment[]): ChitPaymentSummary {
 
 /** Applies stored withdrawal payout when the chit has been withdrawn. */
 export function resolveChitPaymentSummary(
-  payments: Payment[],
+  payments: ChitPaymentSummaryRow[],
   chit?: ChitWithdrawalSnapshot | null,
 ): ChitPaymentSummary {
   const summary = summarizeChitPayments(payments);

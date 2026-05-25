@@ -4,9 +4,7 @@ import { getPermissions } from '@/lib/permissions';
 
 export default async function ReportsPage() {
   const profile = await getProfile();
-  const { canExport, canViewLoanAnalytics } = getPermissions(profile?.role);
+  const { canExport } = getPermissions(profile?.role);
 
-  return (
-    <EnterpriseReportsView canExport={canExport} canViewLoanAnalytics={canViewLoanAnalytics} />
-  );
+  return <EnterpriseReportsView canExport={canExport} />;
 }

@@ -32,7 +32,7 @@ export async function fetchEnterpriseData(
     supabase
       .from('chits')
       .select(
-        'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, person:persons(name, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
+        'id, person_id, type, category, start_date, end_date, matured, withdrawal, withdrawal_date, collection_variance, withdrawal_net_amount, person:persons(name, city), payments(id, chit_id, installment_no, expected_amount, maturity_amount, paid_date, payment_mode, paid_to, advance_amount_paid, amount_paid, status, created_at, updated_at)',
       ),
     supabase.from('loans').select('*').order('start_date', { ascending: false }),
     supabase.from('loan_repayments').select('*').order('repayment_date', { ascending: false }),

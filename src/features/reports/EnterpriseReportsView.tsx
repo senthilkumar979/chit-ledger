@@ -19,13 +19,9 @@ import { ReportsAnalyticsSections } from './enterprise/ReportsAnalyticsSections'
 
 interface EnterpriseReportsViewProps {
   canExport: boolean;
-  canViewLoanAnalytics: boolean;
 }
 
-export function EnterpriseReportsView({
-  canExport,
-  canViewLoanAnalytics,
-}: EnterpriseReportsViewProps) {
+export function EnterpriseReportsView({ canExport }: EnterpriseReportsViewProps) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [city, setCity] = useState('');
@@ -68,10 +64,15 @@ export function EnterpriseReportsView({
       String(r.chits),
       String(r.totalPaid),
       String(r.outstanding),
+      String(r.amountReturned),
+      String(r.profit),
       String(r.variance),
-      String(r.profitContribution),
     ]);
-    exportToCsv('reports-members.csv', ['Member', 'City', 'Chits', 'Paid', 'Outstanding', 'Variance', 'Profit'], rows);
+    exportToCsv(
+      'reports-members.csv',
+      ['Member', 'City', 'Chits', 'Paid', 'Outstanding', 'Amount returned', 'Profit', 'Variance'],
+      rows,
+    );
     toast.success('CSV downloaded');
   };
 
@@ -81,13 +82,15 @@ export function EnterpriseReportsView({
       exportReportTablePdf({
         title: 'Member revenue report',
         subtitle: 'Filtered analytics export',
-        headers: ['Member', 'City', 'Chits', 'Total paid', 'Outstanding', 'Variance'],
+        headers: ['Member', 'City', 'Chits', 'Total paid', 'Outstanding', 'Amount returned', 'Profit', 'Variance'],
         rows: filteredBundle.reports.memberRevenue.map((r) => [
           r.member,
           r.city,
           String(r.chits),
           String(r.totalPaid),
           String(r.outstanding),
+          String(r.amountReturned),
+          String(r.profit),
           String(r.variance),
         ]),
         filename: 'reports-analytics',
@@ -192,7 +195,7 @@ export function EnterpriseReportsView({
         </div>
       </div>
 
-      <ReportsAnalyticsSections metrics={filteredBundle.reports} canViewLoanAnalytics={canViewLoanAnalytics} />
+      <ReportsAnalyticsSections metrics={filteredBundle.reports} />
     </div>
   );
 }

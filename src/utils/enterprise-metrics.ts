@@ -1,10 +1,11 @@
 import { format, subMonths, startOfMonth, differenceInCalendarDays, endOfMonth } from 'date-fns';
-import { ChitTypes } from '@/constants/chit-config';
+import { ChitTypes, type ChitType } from '@/constants/chit-config';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import {
   getRecordedAmount,
   getInstallmentVariance,
   hasRecordedPayment,
+  resolveChitPaymentSummary,
   summarizeChitPayments,
 } from '@/utils/chit-payment-summary';
 import { getInstallmentDueDate } from '@/utils/installment-due';
@@ -29,6 +30,8 @@ export interface EnterpriseChitRow {
   matured: boolean;
   withdrawal: boolean;
   withdrawal_date?: string | null;
+  collection_variance?: number | null;
+  withdrawal_net_amount?: number | null;
   person?: { name?: string; city?: string };
   payments?: PaymentWithChit[];
 }
@@ -223,8 +226,9 @@ export interface MemberRevenueRow {
   chits: number;
   totalPaid: number;
   outstanding: number;
+  amountReturned: number;
+  profit: number;
   variance: number;
-  profitContribution: number;
 }
 
 export interface CohortCell {
@@ -807,6 +811,52 @@ function buildCityMetrics(members: Map<string, MemberAgg>): CityGeoRow[] {
     .slice(0, 12);
 }
 
+function buildMemberRevenueRows(
+  chits: EnterpriseChitRow[],
+  byChit: Map<string, PaymentWithChit[]>,
+): MemberRevenueRow[] {
+  const members = new Map<string, MemberRevenueRow>();
+
+  for (const chit of chits) {
+    const personId = chit.person_id;
+    const row = members.get(personId) ?? {
+      personId,
+      member: chit.person?.name ?? 'Unknown',
+      city: chit.person?.city ?? '-',
+      chits: 0,
+      totalPaid: 0,
+      outstanding: 0,
+      amountReturned: 0,
+      profit: 0,
+      variance: 0,
+    };
+    const summary = resolveChitPaymentSummary(byChit.get(chit.id) ?? [], {
+      withdrawal: chit.withdrawal,
+      withdrawal_net_amount: chit.withdrawal_net_amount ?? null,
+      collection_variance: chit.collection_variance ?? null,
+      type: chit.type as ChitType | undefined,
+    });
+
+    row.chits += 1;
+    row.totalPaid += summary.totalCollected;
+    row.outstanding += summary.outstanding;
+    row.amountReturned += summary.netMaturityPayout;
+    row.variance += summary.collectionVariance;
+    members.set(personId, row);
+  }
+
+  return [...members.values()]
+    .map((row) => ({
+      ...row,
+      totalPaid: round(row.totalPaid),
+      outstanding: round(row.outstanding),
+      amountReturned: round(row.amountReturned),
+      profit: round(row.totalPaid + row.outstanding - row.amountReturned),
+      variance: round(row.variance),
+    }))
+    .sort((a, b) => b.totalPaid - a.totalPaid);
+}
+
 function buildAlerts(
   payments: PaymentWithChit[],
   chits: EnterpriseChitRow[],
@@ -884,19 +934,14 @@ export function buildEnterpriseReportsMetrics(input: EnterpriseBundleInput): Ent
 
   const profitTrend = monthlyPnL.map((m) => ({ name: m.name, profit: m.profit }));
 
-  const members = aggregateMembers(payments, chits);
-  const memberRevenue: MemberRevenueRow[] = [...members.values()]
-    .map((m) => ({
-      personId: m.personId,
-      member: m.name,
-      city: m.city,
-      chits: m.chitCount,
-      totalPaid: round(m.totalPaid),
-      outstanding: round(m.outstanding),
-      variance: round(m.totalVariance),
-      profitContribution: round(m.totalPaid - m.shortfall),
-    }))
-    .sort((a, b) => b.totalPaid - a.totalPaid);
+  const byChit = new Map<string, PaymentWithChit[]>();
+  for (const payment of payments) {
+    const list = byChit.get(payment.chit_id) ?? [];
+    list.push(payment);
+    byChit.set(payment.chit_id, list);
+  }
+
+  const memberRevenue = buildMemberRevenueRows(chits, byChit);
 
   const totalRev = memberRevenue.reduce((s, m) => s + m.totalPaid, 0);
   let cumulative = 0;

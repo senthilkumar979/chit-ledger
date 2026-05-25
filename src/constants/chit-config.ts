@@ -26,7 +26,7 @@ export const FIFTY_THOUSAND = {
   maturity: ONE_LAKH.maturity.map((amount) => amount / 2),
 } as const;
 
-export const TWO_LAKH = {
+export const TWO_LAKH_KOVAI_MODEL = {
   payments: [
     5000, 4267.5, 4310, 4352.5, 4395, 4437.5, 4480, 4522.5, 4565,
     4607.5, 4647.5, 4687.5, 4727.5, 4767.5, 4807.5, 4847.5, 4887.5,
@@ -37,6 +37,11 @@ export const TWO_LAKH = {
     89150, 89950, 90750, 91550, 92350, 93150, 93950, 94750, 95500,
     96250, 97000,
   ],
+} as const;
+
+export const TWO_LAKH = {
+  payments: TWO_LAKH_KOVAI_MODEL.payments.map((amount) => amount * 2),
+  maturity: TWO_LAKH_KOVAI_MODEL.maturity.map((amount) => amount * 2),
 } as const;
 
 const CHIT_SCHEDULES = {

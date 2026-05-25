@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp, Download, Search, Settings2 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { exportToCsv } from '@/utils/export-csv';
@@ -13,6 +13,8 @@ export interface DataTableColumn<T> {
   isCurrency?: boolean;
   mobileLabel?: string;
   hiddenOnMobile?: boolean;
+  render?: (row: T) => ReactNode;
+  cellClassName?: string | ((row: T) => string | undefined);
 }
 
 interface DataTableProps<T> {
@@ -94,6 +96,14 @@ export function DataTable<T>({
     if (col.isCurrency && typeof v === 'number') return formatCurrency(v);
     return String(v);
   };
+
+  const renderCell = (col: DataTableColumn<T>, row: T) => {
+    if (col.render) return col.render(row);
+    return formatCell(col, row);
+  };
+
+  const resolveCellClassName = (col: DataTableColumn<T>, row: T) =>
+    typeof col.cellClassName === 'function' ? col.cellClassName(row) : col.cellClassName;
 
   return (
     <div className="space-y-3">
@@ -199,8 +209,11 @@ export function DataTable<T>({
                   onClick={() => onRowClick?.(row)}
                 >
                   {activeCols.map((col) => (
-                    <td key={col.id} className="px-4 py-3 tabular-nums">
-                      {formatCell(col, row)}
+                    <td
+                      key={col.id}
+                      className={cn('px-4 py-3 tabular-nums', resolveCellClassName(col, row))}
+                    >
+                      {renderCell(col, row)}
                     </td>
                   ))}
                 </tr>
@@ -226,7 +239,14 @@ export function DataTable<T>({
                 .map((col) => (
                   <div key={col.id} className="flex justify-between gap-2 py-0.5">
                     <span className="text-muted">{col.mobileLabel ?? col.header}</span>
-                    <span className="font-medium tabular-nums">{formatCell(col, row)}</span>
+                    <span
+                      className={cn(
+                        'font-medium tabular-nums',
+                        resolveCellClassName(col, row),
+                      )}
+                    >
+                      {renderCell(col, row)}
+                    </span>
                   </div>
                 ))}
             </button>

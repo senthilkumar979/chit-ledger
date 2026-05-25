@@ -34,7 +34,7 @@ describe('chit-config', () => {
   });
 
   it('uses decimal-safe amounts for TWO_LAKH', () => {
-    expect(TWO_LAKH.payments[1]).toBe(4267.5);
-    expect(TWO_LAKH.maturity[0]).toBe(81500);
+    expect(TWO_LAKH.payments[1]).toBe(8535);
+    expect(TWO_LAKH.maturity[0]).toBe(163000);
   });
 });

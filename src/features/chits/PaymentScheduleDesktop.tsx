@@ -105,7 +105,7 @@ function DesktopRow({
       </span>
       <Cell
         value={formatInstallmentDueMonth(startDate, p.installment_no)}
-        className={getPaymentScheduleDueMonthClass(isWithdrawnMonth)}
+        className={getPaymentScheduleDueMonthClass(isWithdrawnMonth, isPaid)}
       />
       <Cell value={formatCurrency(Number(p.expected_amount))} />
       <Cell value={formatCurrency(Number(p.maturity_amount))} />

@@ -17,6 +17,6 @@ export function getPaymentScheduleRowClass(isWithdrawnMonth: boolean, isPaid: bo
   return 'border-border/80 bg-card hover:border-accent/20';
 }
 
-export function getPaymentScheduleDueMonthClass(isWithdrawnMonth: boolean): string {
-  return cn(isWithdrawnMonth && 'font-semibold text-danger');
+export function getPaymentScheduleDueMonthClass(isWithdrawnMonth: boolean, isPaid =false): string {
+  return cn(isWithdrawnMonth ? 'font-semibold text-danger' : isPaid ? 'font-semibold text-accent' : 'font-semibold text-muted');
 }

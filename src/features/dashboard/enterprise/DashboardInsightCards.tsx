@@ -32,9 +32,13 @@ const PIE_COLORS = ['#0F172A', '#2563EB', '#16A34A', '#F59E0B', '#DC2626', '#8B5
 
 interface DashboardInsightCardsProps {
   metrics: EnterpriseDashboardMetrics;
+  selectedMonthLabel: string;
 }
 
-export function DashboardInsightCards({ metrics }: DashboardInsightCardsProps) {
+export function DashboardInsightCards({
+  metrics,
+  selectedMonthLabel,
+}: DashboardInsightCardsProps) {
   const router = useRouter();
 
   const riskColumns: DataTableColumn<RiskMemberRow>[] = [
@@ -59,8 +63,10 @@ export function DashboardInsightCards({ metrics }: DashboardInsightCardsProps) {
 
   const scheduleColumns: DataTableColumn<ScheduleCompareRow>[] = [
     { id: 'schedule', header: 'Schedule', accessor: (r) => r.schedule },
-    { id: 'count', header: 'Chits', accessor: (r) => r.count },
-    { id: 'revenue', header: 'Collected', accessor: (r) => r.revenue, isCurrency: true },
+    { id: 'installments', header: 'Installments', accessor: (r) => r.installments },
+    { id: 'expected', header: 'Expected', accessor: (r) => r.expected, isCurrency: true },
+    { id: 'collected', header: 'Collected', accessor: (r) => r.collected, isCurrency: true },
+    { id: 'pending', header: 'Pending', accessor: (r) => r.pending, isCurrency: true },
   ];
 
   const typeColumns: DataTableColumn<ChitTypeSlice>[] = [
@@ -155,7 +161,7 @@ export function DashboardInsightCards({ metrics }: DashboardInsightCardsProps) {
 
       <ChartTableFlipCard
         title="Schedule-wise comparison"
-        description="Chit count and collections by collection schedule"
+        description={`Expected, collected, and pending installments for ${selectedMonthLabel}`}
         table={
           <DataTable
             columns={scheduleColumns}
@@ -177,24 +183,35 @@ export function DashboardInsightCards({ metrics }: DashboardInsightCardsProps) {
                 textAnchor="end"
                 height={56}
               />
-              <YAxis yAxisId="left" allowDecimals={false} />
               <YAxis
-                yAxisId="right"
-                orientation="right"
+                yAxisId="left"
                 tickFormatter={(v) => `₹${Number(v) / 1000}k`}
               />
               <Tooltip
                 formatter={(v, name) =>
-                  name === 'count' ? [v, 'Chits'] : [formatCurrency(Number(v)), 'Collected']
+                  [formatCurrency(Number(v)), name === 'Expected' ? 'Expected' : name === 'Collected' ? 'Collected' : 'Pending']
                 }
               />
               <Legend />
-              <Bar yAxisId="left" dataKey="count" name="Chits" fill="#0F172A" radius={[4, 4, 0, 0]} />
               <Bar
-                yAxisId="right"
-                dataKey="revenue"
+                yAxisId="left"
+                dataKey="expected"
+                name="Expected"
+                fill="#0F172A"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                yAxisId="left"
+                dataKey="collected"
                 name="Collected"
                 fill="#16A34A"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                yAxisId="left"
+                dataKey="pending"
+                name="Pending"
+                fill="#DC2626"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

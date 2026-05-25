@@ -4,7 +4,6 @@ import { TrendingDown, TrendingUp } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { AnimatedCounter } from '@/components/analytics/AnimatedCounter';
 import { Sparkline } from '@/components/analytics/Sparkline';
-import { WaterfallChart } from '@/components/charts/enterprise/WaterfallChart';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { ExecutiveSnapshot } from '@/utils/enterprise-metrics';
 
@@ -21,7 +20,7 @@ export function ExecutiveSnapshotSection({ data }: ExecutiveSnapshotSectionProps
 
   return (
     <section className="sticky top-14 z-10 -mx-4 border-b border-border/80 bg-background/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <SnapshotCard title="Cash collected" question="Are collections improving?">
           <p className="text-lg font-bold tabular-nums sm:text-xl">
             <AnimatedCounter value={data.cashCollected.thisMonth} isCurrency />
@@ -43,6 +42,7 @@ export function ExecutiveSnapshotSection({ data }: ExecutiveSnapshotSectionProps
 
         <SnapshotCard title="Outstanding" question="How much money is blocked?">
           <p className="text-lg font-bold tabular-nums">{formatCurrency(data.outstanding.totalDue)}</p>
+          <p className="text-xs text-muted">Pending for selected month</p>
           <p className="text-xs text-danger">Overdue {formatCurrency(data.outstanding.overdue)}</p>
           <p className="text-xs text-muted">Partial {formatCurrency(data.outstanding.partialPending)}</p>
           <div className="mt-1 h-12">
@@ -54,14 +54,6 @@ export function ExecutiveSnapshotSection({ data }: ExecutiveSnapshotSectionProps
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        </SnapshotCard>
-
-        <SnapshotCard title="Net profit" question="Are we actually making money?">
-          <p className="text-lg font-bold tabular-nums">{formatCurrency(data.netProfitMonth)}</p>
-          <p className="text-xs text-muted">YTD {formatCurrency(data.netProfitYtd)}</p>
-          <div className="mt-1 h-14">
-            <WaterfallChart data={data.profitWaterfall} />
           </div>
         </SnapshotCard>
 
@@ -85,15 +77,6 @@ export function ExecutiveSnapshotSection({ data }: ExecutiveSnapshotSectionProps
               }}
             />
           </div>
-        </SnapshotCard>
-
-        <SnapshotCard title="Cash position" question="Do we have enough cash?">
-          <p className="text-lg font-bold tabular-nums">{formatCurrency(data.cashPosition.current)}</p>
-          <Sparkline
-            data={data.cashPosition.trend.map((t) => t.value)}
-            positive={data.cashPosition.current >= 0}
-            className="mt-2 h-10 w-full max-w-none"
-          />
         </SnapshotCard>
       </div>
     </section>

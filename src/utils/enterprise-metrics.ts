@@ -1,4 +1,5 @@
 import { format, subMonths, startOfMonth, differenceInCalendarDays, endOfMonth } from 'date-fns';
+import { ChitTypes } from '@/constants/chit-config';
 import { chitTypeLabels } from '@/constants/chit-labels';
 import {
   getRecordedAmount,
@@ -8,13 +9,11 @@ import {
 } from '@/utils/chit-payment-summary';
 import { getInstallmentDueDate } from '@/utils/installment-due';
 import { summarizeLoanBalance } from '@/utils/loan-balance';
-import { roundMoney } from '@/utils/loan-calculations';
-import { computeYearProfitLoss } from '@/utils/profit-loss-metrics';
+import { calculateMonthlyLoanInterest } from '@/utils/loan-calculations';
 import type { Loan, LoanRepayment, PaymentStatus } from '@/types/database';
 import type { ChitWithSchedulePayments, PaymentWithChit } from '@/utils/payment-month';
 import {
   buildMonthlyScheduledPayments,
-  computePaymentsMonthStats,
   getCurrentMonthKey,
   parseMonthKey,
   toMonthKey,
@@ -109,9 +108,8 @@ export interface MemberLeaderboardRow {
   personId: string;
   name: string;
   city: string;
-  totalPaid: number;
-  totalVariance: number;
-  chitCount: number;
+  activeChitCount: number;
+  portfolioValue: number;
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high';
@@ -149,8 +147,10 @@ export interface CityGeoRow {
 
 export interface ScheduleCompareRow {
   schedule: string;
-  count: number;
-  revenue: number;
+  installments: number;
+  expected: number;
+  collected: number;
+  pending: number;
 }
 
 export interface ChitPortfolioBar {
@@ -166,6 +166,17 @@ export interface GeographicChitRow {
   active: number;
   matured: number;
   withdrawn: number;
+}
+
+export interface MaturityDetailRow {
+  chitId: string;
+  member: string;
+  city: string;
+  scheme: string;
+  schedule: string;
+  endDate: string | null;
+  daysLeft: number;
+  netPayout: number;
 }
 
 export type AlertSeverity = 'critical' | 'warning' | 'info';
@@ -189,6 +200,7 @@ export interface EnterpriseDashboardMetrics {
   riskMembers: RiskMemberRow[];
   chitTypes: ChitTypeSlice[];
   maturityPipeline: MaturityBucket[];
+  maturityDetails: MaturityDetailRow[];
   cities: CityGeoRow[];
   scheduleComparison: ScheduleCompareRow[];
   chitPortfolio: ChitPortfolioBar[];
@@ -278,6 +290,50 @@ function growthPct(current: number, previous: number): number {
   return round(((current - previous) / previous) * 100);
 }
 
+interface ScheduledMonthSummary {
+  expected: number;
+  collected: number;
+  pending: number;
+  overduePending: number;
+  partialPending: number;
+  progressPct: number;
+}
+
+function summarizeScheduledMonth(payments: PaymentWithChit[]): ScheduledMonthSummary {
+  let expected = 0;
+  let collected = 0;
+  let pending = 0;
+  let overduePending = 0;
+  let partialPending = 0;
+
+  for (const payment of payments) {
+    const installmentExpected = Number(payment.expected_amount);
+    const installmentCollected = hasRecordedPayment(payment) ? getRecordedAmount(payment) : 0;
+    const installmentPending = Math.max(0, installmentExpected - installmentCollected);
+
+    expected += installmentExpected;
+    collected += installmentCollected;
+    pending += installmentPending;
+    if (payment.status === 'overdue') overduePending += installmentPending;
+    if (payment.status === 'partial') partialPending += installmentPending;
+  }
+
+  return {
+    expected: round(expected),
+    collected: round(collected),
+    pending: round(pending),
+    overduePending: round(overduePending),
+    partialPending: round(partialPending),
+    progressPct: expected > 0 ? Math.min(100, round((collected / expected) * 100)) : 100,
+  };
+}
+
+function getChitFaceValue(type?: string): number {
+  if (type === ChitTypes.FIFTY_THOUSAND) return 50_000;
+  if (type === ChitTypes.TWO_LAKH) return 200_000;
+  return 100_000;
+}
+
 function daysOverdue(payment: PaymentWithChit, today = new Date()): number {
   const start = payment.chit?.start_date;
   if (!start || payment.status === 'paid') return 0;
@@ -302,16 +358,37 @@ export function buildEnterpriseDashboardMetrics(
   const prevMonth = subMonths(new Date(year, monthIndex, 1), 1);
   const prevMonthKey = toMonthKey(prevMonth.getFullYear(), prevMonth.getMonth());
   const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const today = new Date();
+
+  const scheduleChits: ChitWithSchedulePayments[] = chits.map((chit) => ({
+    ...chit,
+    start_date: chit.start_date ?? null,
+    end_date: chit.end_date ?? null,
+    payments: chit.payments?.map((payment) => ({
+      ...payment,
+      chit: undefined,
+    })),
+  }));
 
   const monthKeys12 = lastNMonthKeys(12);
-  const sparkline = monthKeys12.map((k) => collectedInMonth(payments, k));
+  const monthScheduleSummary = new Map<string, ScheduledMonthSummary>();
+  for (const key of monthKeys12) {
+    const scheduledMonth = buildMonthlyScheduledPayments(scheduleChits, key);
+    monthScheduleSummary.set(key, summarizeScheduledMonth(scheduledMonth.scheduled));
+  }
 
-  const thisMonth = collectedInMonth(payments, monthKey);
-  const lastMonth = collectedInMonth(payments, prevMonthKey);
+  const sparkline = monthKeys12.map((key) => monthScheduleSummary.get(key)?.collected ?? 0);
 
-  let totalDue = 0;
-  let overdueAmt = 0;
-  let partialPending = 0;
+  const selectedMonthSchedule = buildMonthlyScheduledPayments(scheduleChits, monthKey);
+  const selectedMonthSummary =
+    monthScheduleSummary.get(monthKey) ?? summarizeScheduledMonth(selectedMonthSchedule.scheduled);
+  const previousMonthSummary =
+    monthScheduleSummary.get(prevMonthKey) ??
+    summarizeScheduledMonth(buildMonthlyScheduledPayments(scheduleChits, prevMonthKey).scheduled);
+
+  const thisMonth = selectedMonthSummary.collected;
+  const lastMonth = previousMonthSummary.collected;
+
   const agingMap = new Map<string, { amount: number; count: number }>([
     ['Current', { amount: 0, count: 0 }],
     ['1–30 days', { amount: 0, count: 0 }],
@@ -326,9 +403,6 @@ export function buildEnterpriseDashboardMetrics(
     const collected = getRecordedAmount(p);
     const pending = Math.max(0, expected - collected);
     if (pending <= 0) continue;
-    totalDue += pending;
-    if (p.status === 'overdue') overdueAmt += pending;
-    if (p.status === 'partial') partialPending += pending;
 
     const days = daysOverdue(p);
     let bucket = 'Current';
@@ -342,15 +416,6 @@ export function buildEnterpriseDashboardMetrics(
     agingMap.set(bucket, b);
   }
 
-  const progressPct = totalDue > 0 ? round((1 - overdueAmt / totalDue) * 100) : 100;
-
-  const calendarYear = new Date().getFullYear();
-  const ytdPl = computeYearProfitLoss(calendarYear, payments, loans, repayments);
-  const monthInterest = repayments
-    .filter((r) => r.repayment_date.startsWith(monthKey))
-    .reduce((s, r) => s + Number(r.interest_paid), 0);
-  const netProfitMonth = round(collectedInMonth(payments, monthKey) - monthInterest);
-
   const activeLoans = loans.filter((l) => l.status === 'active');
   let principalOutstanding = 0;
   let monthlyInterestBurden = 0;
@@ -360,8 +425,9 @@ export function buildEnterpriseDashboardMetrics(
       repayments.filter((r) => r.loan_id === loan.id),
     );
     principalOutstanding += balance.principalOutstanding;
-    monthlyInterestBurden += roundMoney(
-      balance.principalOutstanding * (Number(loan.interest_rate) / 100),
+    monthlyInterestBurden += calculateMonthlyLoanInterest(
+      balance.principalOutstanding,
+      loan.interest_rate,
     );
   }
 
@@ -409,44 +475,24 @@ export function buildEnterpriseDashboardMetrics(
     name: m.name,
     value: round(m.collections - m.withdrawals - m.loanRepayments),
   }));
-
-  const scheduleChits: ChitWithSchedulePayments[] = chits.map((chit) => ({
-    ...chit,
-    start_date: chit.start_date ?? null,
-    end_date: chit.end_date ?? null,
-    payments: chit.payments?.map((payment) => ({
-      ...payment,
-      chit: undefined,
-    })),
-  }));
-
-  const selectedMonthSchedule = buildMonthlyScheduledPayments(scheduleChits, monthKey);
-  const selectedMonthStats = computePaymentsMonthStats(selectedMonthSchedule.scheduled);
-  const funnelExpected = selectedMonthSchedule.scheduled.reduce(
-    (sum, payment) => sum + Number(payment.expected_amount),
-    0,
-  );
-  const funnelCollected = selectedMonthStats.collectedAmount;
+  const funnelExpected = selectedMonthSummary.expected;
+  const funnelCollected = selectedMonthSummary.collected;
 
   const collectionTrend: CollectionTrendMonth[] = monthKeys12.map((mk) => {
-    const monthSchedule = buildMonthlyScheduledPayments(scheduleChits, mk);
-    const expected = monthSchedule.scheduled.reduce(
-      (sum, payment) => sum + Number(payment.expected_amount),
-      0,
-    );
-    const actual = computePaymentsMonthStats(monthSchedule.scheduled).collectedAmount;
+    const summary =
+      monthScheduleSummary.get(mk) ??
+      summarizeScheduledMonth(buildMonthlyScheduledPayments(scheduleChits, mk).scheduled);
     return {
       monthKey: mk,
       name: format(new Date(`${mk}-01`), 'MMM yy'),
-      expected: round(expected),
-      actual,
-      variance: round(actual - expected),
+      expected: summary.expected,
+      actual: summary.collected,
+      variance: round(summary.collected - summary.expected),
     };
   });
 
   const memberMap = aggregateMembers(payments, chits);
-  const topMembers = [...memberMap.values()]
-    .sort((a, b) => b.totalPaid - a.totalPaid)
+  const topMembers = buildTopMembers(chits)
     .slice(0, 10);
 
   const riskMembers = [...memberMap.values()]
@@ -488,9 +534,10 @@ export function buildEnterpriseDashboardMetrics(
     avgVariance: v.count ? round(v.varianceSum / v.count) : 0,
   }));
 
-  const maturityPipeline = buildMaturityPipeline(chits, byChitPayments);
+  const maturityDetails = buildMaturityDetails(chits, byChitPayments, today);
+  const maturityPipeline = buildMaturityPipeline(maturityDetails);
   const cities = buildCityMetrics(memberMap);
-  const scheduleComparison = buildScheduleComparison(chits, byChitPayments);
+  const scheduleComparison = buildScheduleComparison(selectedMonthSchedule.scheduled);
   const chitPortfolio = buildChitPortfolioBars(chits);
   const geographicChits = buildGeographicChits(chits);
   const alerts = buildAlerts(payments, chits, loans, principalOutstanding, totalPayoutLiability);
@@ -505,13 +552,13 @@ export function buildEnterpriseDashboardMetrics(
         sparkline,
       },
       outstanding: {
-        totalDue: round(totalDue),
-        overdue: round(overdueAmt),
-        partialPending: round(partialPending),
-        progressPct,
+        totalDue: selectedMonthSummary.pending,
+        overdue: selectedMonthSummary.overduePending,
+        partialPending: selectedMonthSummary.partialPending,
+        progressPct: selectedMonthSummary.progressPct,
       },
-      netProfitMonth: netProfitMonth,
-      netProfitYtd: ytdPl.netProfit,
+      netProfitMonth: 0,
+      netProfitYtd: 0,
       loanExposure: {
         activeLoans: activeLoans.length,
         principalOutstanding: round(principalOutstanding),
@@ -522,11 +569,7 @@ export function buildEnterpriseDashboardMetrics(
         totalPayoutLiability: round(totalPayoutLiability),
       },
       cashPosition: { current: cashTrend[cashTrend.length - 1]?.value ?? 0, trend: cashTrend },
-      profitWaterfall: [
-        { name: 'Revenue', value: ytdPl.chitRevenue },
-        { name: 'Interest', value: -ytdPl.loanInterestExpense },
-        { name: 'Net', value: ytdPl.netProfit },
-      ],
+      profitWaterfall: [],
     },
     cashFlow,
     funnel: {
@@ -544,6 +587,7 @@ export function buildEnterpriseDashboardMetrics(
     riskMembers,
     chitTypes,
     maturityPipeline,
+    maturityDetails,
     cities,
     scheduleComparison,
     chitPortfolio,
@@ -559,25 +603,35 @@ function classifyChitLifecycle(chit: EnterpriseChitRow): 'active' | 'matured' | 
 }
 
 function buildScheduleComparison(
-  chits: EnterpriseChitRow[],
-  byChit: Map<string, PaymentWithChit[]>,
+  payments: PaymentWithChit[],
 ): ScheduleCompareRow[] {
-  const map = new Map<string, { count: number; revenue: number }>();
-  for (const chit of chits) {
-    const schedule = chit.category?.trim() || 'Unspecified';
-    const summary = summarizeChitPayments(byChit.get(chit.id) ?? []);
-    const bucket = map.get(schedule) ?? { count: 0, revenue: 0 };
-    bucket.count++;
-    bucket.revenue += summary.totalCollected;
+  const map = new Map<string, Omit<ScheduleCompareRow, 'schedule'>>();
+  for (const payment of payments) {
+    const schedule = payment.chit?.category?.trim() || 'Unspecified';
+    const expected = Number(payment.expected_amount);
+    const collected = hasRecordedPayment(payment) ? getRecordedAmount(payment) : 0;
+    const pending = Math.max(0, expected - collected);
+    const bucket = map.get(schedule) ?? {
+      installments: 0,
+      expected: 0,
+      collected: 0,
+      pending: 0,
+    };
+    bucket.installments++;
+    bucket.expected += expected;
+    bucket.collected += collected;
+    bucket.pending += pending;
     map.set(schedule, bucket);
   }
   return [...map.entries()]
     .map(([schedule, v]) => ({
       schedule,
-      count: v.count,
-      revenue: round(v.revenue),
+      installments: v.installments,
+      expected: round(v.expected),
+      collected: round(v.collected),
+      pending: round(v.pending),
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.expected - a.expected);
 }
 
 function buildChitPortfolioBars(chits: EnterpriseChitRow[]): ChitPortfolioBar[] {
@@ -666,29 +720,68 @@ function aggregateMembers(
   return map;
 }
 
-function buildMaturityPipeline(
+function buildTopMembers(chits: EnterpriseChitRow[]): MemberLeaderboardRow[] {
+  const map = new Map<string, MemberLeaderboardRow>();
+
+  for (const chit of chits) {
+    if (chit.matured || chit.withdrawal) continue;
+    const personId = chit.person_id;
+    const row = map.get(personId) ?? {
+      personId,
+      name: chit.person?.name ?? 'Unknown',
+      city: chit.person?.city ?? '-',
+      activeChitCount: 0,
+      portfolioValue: 0,
+    };
+    row.activeChitCount++;
+    row.portfolioValue += getChitFaceValue(chit.type);
+    map.set(personId, row);
+  }
+
+  return [...map.values()].sort((a, b) => b.portfolioValue - a.portfolioValue);
+}
+
+function buildMaturityDetails(
   chits: EnterpriseChitRow[],
   byChit: Map<string, PaymentWithChit[]>,
-): MaturityBucket[] {
+  today: Date,
+): MaturityDetailRow[] {
+  return chits
+    .filter((chit) => !chit.withdrawal && !chit.matured && Boolean(chit.end_date))
+    .map((chit) => {
+      const endDate = chit.end_date ?? null;
+      const daysLeft = endDate ? differenceInCalendarDays(new Date(endDate), today) : 0;
+      const payout = summarizeChitPayments(byChit.get(chit.id) ?? []).netMaturityPayout;
+      return {
+        chitId: chit.id,
+        member: chit.person?.name ?? 'Unknown',
+        city: chit.person?.city ?? '-',
+        scheme: chitTypeLabels[chit.type ?? ChitTypes.ONE_LAKH] ?? chit.type ?? 'Unknown',
+        schedule: chit.category?.trim() || 'Unspecified',
+        endDate,
+        daysLeft,
+        netPayout: round(payout),
+      };
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
+function buildMaturityPipeline(details: MaturityDetailRow[]): MaturityBucket[] {
   const buckets: MaturityBucket[] = [
     { label: '0–30 days', count: 0, liability: 0 },
     { label: '31–60 days', count: 0, liability: 0 },
     { label: '61–90 days', count: 0, liability: 0 },
     { label: '90+ days', count: 0, liability: 0 },
   ];
-  const today = new Date();
 
-  for (const chit of chits) {
-    if (!chit.matured || chit.withdrawal) continue;
-    const end = chit.end_date ? new Date(chit.end_date) : today;
-    const days = differenceInCalendarDays(today, end);
-    const payout = summarizeChitPayments(byChit.get(chit.id) ?? []).netMaturityPayout;
+  for (const detail of details) {
+    const days = Math.max(0, detail.daysLeft);
     let idx = 0;
     if (days > 90) idx = 3;
     else if (days > 60) idx = 2;
     else if (days > 30) idx = 1;
     buckets[idx].count++;
-    buckets[idx].liability += payout;
+    buckets[idx].liability += detail.netPayout;
   }
 
   return buckets.map((b) => ({ ...b, liability: round(b.liability) }));

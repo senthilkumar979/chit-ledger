@@ -15,11 +15,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { ChartTableFlipCard } from '@/components/analytics/ChartTableFlipCard'
 import { ChartPanel } from '@/components/analytics/ChartPanel'
-import { formatCurrency, cn } from '@/lib/utils'
+import { DataTable, type DataTableColumn } from '@/components/analytics/DataTable'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { formatMonthLabel, getCurrentMonthKey } from '@/utils/payment-month'
 import type {
   EnterpriseDashboardMetrics,
+  MaturityDetailRow,
   MemberLeaderboardRow,
 } from '@/utils/enterprise-metrics'
 import { DashboardInsightCards } from './DashboardInsightCards'
@@ -38,6 +41,19 @@ export function DashboardAnalyticsSections({
   const selectedMonthLabel = formatMonthLabel(
     selectedMonthKey ?? getCurrentMonthKey(),
   )
+  const maturityColumns: DataTableColumn<MaturityDetailRow>[] = [
+    { id: 'member', header: 'Member', accessor: (row) => row.member },
+    { id: 'city', header: 'City', accessor: (row) => row.city, hiddenOnMobile: true },
+    { id: 'scheme', header: 'Scheme', accessor: (row) => row.scheme },
+    { id: 'schedule', header: 'Schedule', accessor: (row) => row.schedule, hiddenOnMobile: true },
+    {
+      id: 'endDate',
+      header: 'End date',
+      accessor: (row) => (row.endDate ? formatDate(row.endDate) : '—'),
+    },
+    { id: 'daysLeft', header: 'Days left', accessor: (row) => row.daysLeft },
+    { id: 'netPayout', header: 'Net payout', accessor: (row) => row.netPayout, isCurrency: true },
+  ]
   const funnelData = [
     { stage: 'Expected', value: metrics.funnel.expected },
     { stage: 'Collected', value: metrics.funnel.collected },
@@ -110,8 +126,8 @@ export function DashboardAnalyticsSections({
       </div>
 
       <ChartPanel
-        title="Top members by revenue"
-        description="Who are our most valuable members?"
+        title="Top members by portfolio value"
+        description="Which members currently hold the largest active chit value?"
         height="h-72"
       >
         <ResponsiveContainer width="100%" height="100%">
@@ -136,9 +152,14 @@ export function DashboardAnalyticsSections({
               width={88}
               tick={{ fontSize: 10 }}
             />
-            <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+            <Tooltip
+              formatter={(v, _name, item) => [
+                formatCurrency(Number(v)),
+                `${item?.payload?.activeChitCount ?? 0} active chits`,
+              ]}
+            />
             <Bar
-              dataKey="totalPaid"
+              dataKey="portfolioValue"
               fill="#0F172A"
               radius={[0, 4, 4, 0]}
               className="cursor-pointer"
@@ -147,41 +168,53 @@ export function DashboardAnalyticsSections({
         </ResponsiveContainer>
       </ChartPanel>
 
-      <DashboardInsightCards metrics={metrics} />
+      <DashboardInsightCards
+        metrics={metrics}
+        selectedMonthLabel={selectedMonthLabel}
+      />
 
-      <ChartPanel
+      <ChartTableFlipCard
         title="Maturity pipeline"
-        description="What payouts are approaching?"
-        height="h-72"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={metrics.maturityPipeline}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-            <YAxis yAxisId="left" tickFormatter={(v) => String(v)} />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickFormatter={(v) => `₹${Number(v) / 1000}k`}
-            />
-            <Tooltip />
-            <Bar
-              yAxisId="left"
-              dataKey="count"
-              name="Chits"
-              fill="#0F172A"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              yAxisId="right"
-              dataKey="liability"
-              name="Liability"
-              fill="#DC2626"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartPanel>
+        description="Which unwithdrawn chits are nearing maturity?"
+        chart={
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={metrics.maturityPipeline}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis yAxisId="left" tickFormatter={(v) => String(v)} />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tickFormatter={(v) => `₹${Number(v) / 1000}k`}
+              />
+              <Tooltip />
+              <Bar
+                yAxisId="left"
+                dataKey="count"
+                name="Chits"
+                fill="#0F172A"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                yAxisId="right"
+                dataKey="liability"
+                name="Liability"
+                fill="#DC2626"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        }
+        table={
+          <DataTable
+            columns={maturityColumns}
+            data={metrics.maturityDetails}
+            rowKey={(row) => row.chitId}
+            exportFilename="maturity-pipeline.csv"
+            pageSize={10}
+          />
+        }
+      />
 
       <AlertsPanel alerts={metrics.alerts} />
     </div>
